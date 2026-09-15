@@ -11,6 +11,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.compose.ui.viewinterop.AndroidView
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(url: String, onBack: () -> Unit) {
     val context = LocalContext.current
