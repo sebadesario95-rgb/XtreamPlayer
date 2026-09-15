@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.xtreamplayer.viewmodel.AppViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(vm: AppViewModel, onPlay: (String) -> Unit) {
     val account = vm.auth?.user_info
