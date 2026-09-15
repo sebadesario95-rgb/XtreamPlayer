@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.xtreamplayer"
-        minSdk = 24
+        minSdk = 23
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -25,9 +25,10 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-}
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+    }
 
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -36,6 +37,7 @@ android {
 
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
+
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
