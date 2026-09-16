@@ -1,7 +1,9 @@
 package com.example.xtreamplayer.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,21 +13,32 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.xtreamplayer.data.LiveStream
 import com.example.xtreamplayer.data.VodStream
+
+// =============================================================
+// LIVE TV
+// =============================================================
 
 @Composable
 fun LiveContentScreen(
@@ -40,24 +53,44 @@ fun LiveContentScreen(
         onBack = onBack
     ) {
 
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 20.dp)
-        ) {
+        if (streams.isEmpty()) {
 
-            items(streams) { channel ->
+            EmptyContentMessage(
+                text = "Nessun canale disponibile."
+            )
 
-                ContentCard(
-                    title = channel.name ?: "Canale",
-                    subtitle = "LIVE",
-                    onClick = {
-                        onPlay(channel)
-                    }
+        } else {
+
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(
+                    minSize = 180.dp
+                ),
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                contentPadding = PaddingValues(
+                    bottom = 30.dp
                 )
+            ) {
+
+                items(streams) { channel ->
+
+                    LiveChannelCard(
+                        channel = channel,
+                        onClick = {
+                            onPlay(channel)
+                        }
+                    )
+                }
             }
         }
     }
 }
+
+
+// =============================================================
+// FILM
+// =============================================================
 
 @Composable
 fun MovieContentScreen(
@@ -72,24 +105,44 @@ fun MovieContentScreen(
         onBack = onBack
     ) {
 
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 20.dp)
-        ) {
+        if (movies.isEmpty()) {
 
-            items(movies) { movie ->
+            EmptyContentMessage(
+                text = "Nessun film disponibile."
+            )
 
-                ContentCard(
-                    title = movie.name ?: "Film",
-                    subtitle = movie.rating ?: "",
-                    onClick = {
-                        onPlay(movie)
-                    }
+        } else {
+
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(
+                    minSize = 170.dp
+                ),
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                contentPadding = PaddingValues(
+                    bottom = 30.dp
                 )
+            ) {
+
+                items(movies) { movie ->
+
+                    MovieCard(
+                        movie = movie,
+                        onClick = {
+                            onPlay(movie)
+                        }
+                    )
+                }
             }
         }
     }
 }
+
+
+// =============================================================
+// HEADER
+// =============================================================
 
 @Composable
 private fun ContentHeader(
@@ -101,17 +154,24 @@ private fun ContentHeader(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(
+                Color(0xFF090909)
+            )
             .padding(24.dp)
     ) {
 
         Row(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
 
             TextButton(
                 onClick = onBack
             ) {
-                Text("← INDIETRO")
+
+                Text(
+                    "← INDIETRO"
+                )
             }
 
             Spacer(
@@ -120,8 +180,7 @@ private fun ContentHeader(
 
             Text(
                 text = title,
-                modifier = Modifier.padding(top = 8.dp),
-                fontSize = 26.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -134,56 +193,244 @@ private fun ContentHeader(
     }
 }
 
+
+// =============================================================
+// CARD FILM
+// =============================================================
+
 @Composable
-private fun ContentCard(
-    title: String,
-    subtitle: String,
+private fun MovieCard(
+    movie: VodStream,
     onClick: () -> Unit
 ) {
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(78.dp)
             .clickable {
                 onClick()
             },
+
+        shape = RoundedCornerShape(12.dp),
+
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFF151515)
         ),
+
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 5.dp
+            defaultElevation = 6.dp
+        )
+    ) {
+
+        Column {
+
+            if (!movie.stream_icon.isNullOrBlank()) {
+
+                AsyncImage(
+
+                    model = movie.stream_icon,
+
+                    contentDescription =
+                        movie.name,
+
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(245.dp)
+                        .clip(
+                            RoundedCornerShape(
+                                topStart = 12.dp,
+                                topEnd = 12.dp
+                            )
+                        ),
+
+                    contentScale =
+                        ContentScale.Crop
+                )
+
+            } else {
+
+                Box(
+
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(245.dp)
+                        .background(
+                            Color(0xFF202020)
+                        ),
+
+                    contentAlignment =
+                        Alignment.Center
+                ) {
+
+                    Text(
+                        "NESSUNA IMMAGINE",
+                        fontSize = 12.sp,
+                        color =
+                            MaterialTheme.colorScheme
+                                .onSurfaceVariant
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.padding(14.dp)
+            ) {
+
+                Text(
+                    text = movie.name ?: "Film",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2
+                )
+
+                if (!movie.rating.isNullOrBlank()) {
+
+                    Spacer(
+                        modifier = Modifier.height(5.dp)
+                    )
+
+                    Text(
+                        text = "★ ${movie.rating}",
+                        fontSize = 13.sp,
+                        color =
+                            MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+// =============================================================
+// CARD LIVE TV
+// =============================================================
+
+@Composable
+private fun LiveChannelCard(
+    channel: LiveStream,
+    onClick: () -> Unit
+) {
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp)
+            .clickable {
+                onClick()
+            },
+
+        shape = RoundedCornerShape(12.dp),
+
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF151515)
+        ),
+
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 6.dp
         )
     ) {
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(
-                    horizontal = 20.dp,
-                    vertical = 14.dp
-                ),
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.fillMaxSize()
+        ) {
+
+            if (!channel.stream_icon.isNullOrBlank()) {
+
+                AsyncImage(
+
+                    model = channel.stream_icon,
+
+                    contentDescription =
+                        channel.name,
+
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(15.dp),
+
+                    contentScale =
+                        ContentScale.Fit
+                )
+
+            } else {
+
+                Box(
+
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+
+                    contentAlignment =
+                        Alignment.Center
+                ) {
+
+                    Text(
+                        "TV",
+                        fontSize = 28.sp,
+                        fontWeight =
+                            FontWeight.Bold,
+                        color =
+                            MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Text(
+                text = channel.name ?: "Canale",
+
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 14.dp,
+                        vertical = 12.dp
+                    ),
+
+                fontSize = 15.sp,
+
+                fontWeight =
+                    FontWeight.Bold
+            )
+        }
+    }
+}
+
+
+// =============================================================
+// NESSUN CONTENUTO
+// =============================================================
+
+@Composable
+private fun EmptyContentMessage(
+    text: String
+) {
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+
+        Column(
+            horizontalAlignment =
+                Alignment.CenterHorizontally
         ) {
 
             Text(
-                text = title,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold
+                text = text,
+                color =
+                    MaterialTheme.colorScheme
+                        .onSurfaceVariant
             )
 
-            if (subtitle.isNotBlank()) {
+            Spacer(
+                modifier = Modifier.height(12.dp)
+            )
 
-                Spacer(
-                    modifier = Modifier.height(4.dp)
-                )
-
-                Text(
-                    text = subtitle,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .width(0.dp)
+                    .height(0.dp)
+            )
         }
     }
 }
