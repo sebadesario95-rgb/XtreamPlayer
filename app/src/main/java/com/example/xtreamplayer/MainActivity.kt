@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
                 colorScheme = darkColorScheme(
                     background = Color(0xFF090909),
                     surface = Color(0xFF151515),
-                    primary = Color(0xFFCAEA00)
+                    primary = Color(0xFF1677FF)
                 )
             ) {
 
