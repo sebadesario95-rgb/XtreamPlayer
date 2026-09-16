@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -36,10 +35,6 @@ import coil.compose.AsyncImage
 import com.example.xtreamplayer.data.LiveStream
 import com.example.xtreamplayer.data.VodStream
 
-// =============================================================
-// LIVE TV
-// =============================================================
-
 @Composable
 fun LiveContentScreen(
     title: String,
@@ -47,20 +42,15 @@ fun LiveContentScreen(
     onPlay: (LiveStream) -> Unit,
     onBack: () -> Unit
 ) {
-
     ContentHeader(
         title = title,
         onBack = onBack
     ) {
-
         if (streams.isEmpty()) {
-
             EmptyContentMessage(
                 text = "Nessun canale disponibile."
             )
-
         } else {
-
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(
                     minSize = 180.dp
@@ -72,9 +62,7 @@ fun LiveContentScreen(
                     bottom = 30.dp
                 )
             ) {
-
                 items(streams) { channel ->
-
                     LiveChannelCard(
                         channel = channel,
                         onClick = {
@@ -87,11 +75,6 @@ fun LiveContentScreen(
     }
 }
 
-
-// =============================================================
-// FILM
-// =============================================================
-
 @Composable
 fun MovieContentScreen(
     title: String,
@@ -99,20 +82,15 @@ fun MovieContentScreen(
     onPlay: (VodStream) -> Unit,
     onBack: () -> Unit
 ) {
-
     ContentHeader(
         title = title,
         onBack = onBack
     ) {
-
         if (movies.isEmpty()) {
-
             EmptyContentMessage(
                 text = "Nessun film disponibile."
             )
-
         } else {
-
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(
                     minSize = 170.dp
@@ -124,9 +102,7 @@ fun MovieContentScreen(
                     bottom = 30.dp
                 )
             ) {
-
                 items(movies) { movie ->
-
                     MovieCard(
                         movie = movie,
                         onClick = {
@@ -139,39 +115,26 @@ fun MovieContentScreen(
     }
 }
 
-
-// =============================================================
-// HEADER
-// =============================================================
-
 @Composable
 private fun ContentHeader(
     title: String,
     onBack: () -> Unit,
     content: @Composable () -> Unit
 ) {
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Color(0xFF090909)
-            )
+            .background(Color(0xFF090909))
             .padding(24.dp)
     ) {
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             TextButton(
                 onClick = onBack
             ) {
-
-                Text(
-                    "← INDIETRO"
-                )
+                Text("← INDIETRO")
             }
 
             Spacer(
@@ -193,46 +156,30 @@ private fun ContentHeader(
     }
 }
 
-
-// =============================================================
-// CARD FILM
-// =============================================================
-
 @Composable
 private fun MovieCard(
     movie: VodStream,
     onClick: () -> Unit
 ) {
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
                 onClick()
             },
-
         shape = RoundedCornerShape(12.dp),
-
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFF151515)
         ),
-
         elevation = CardDefaults.cardElevation(
             defaultElevation = 6.dp
         )
     ) {
-
         Column {
-
             if (!movie.stream_icon.isNullOrBlank()) {
-
                 AsyncImage(
-
                     model = movie.stream_icon,
-
-                    contentDescription =
-                        movie.name,
-
+                    contentDescription = movie.name,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(245.dp)
@@ -242,32 +189,24 @@ private fun MovieCard(
                                 topEnd = 12.dp
                             )
                         ),
-
-                    contentScale =
-                        ContentScale.Crop
+                    contentScale = ContentScale.Crop
                 )
-
             } else {
-
                 Box(
-
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(245.dp)
                         .background(
                             Color(0xFF202020)
                         ),
-
-                    contentAlignment =
-                        Alignment.Center
+                    contentAlignment = Alignment.Center
                 ) {
-
                     Text(
-                        "NESSUNA IMMAGINE",
+                        text = "NESSUNA IMMAGINE",
                         fontSize = 12.sp,
-                        color =
-                            MaterialTheme.colorScheme
-                                .onSurfaceVariant
+                        color = MaterialTheme
+                            .colorScheme
+                            .onSurfaceVariant
                     )
                 }
             }
@@ -275,7 +214,6 @@ private fun MovieCard(
             Column(
                 modifier = Modifier.padding(14.dp)
             ) {
-
                 Text(
                     text = movie.name ?: "Film",
                     fontSize = 16.sp,
@@ -284,7 +222,6 @@ private fun MovieCard(
                 )
 
                 if (!movie.rating.isNullOrBlank()) {
-
                     Spacer(
                         modifier = Modifier.height(5.dp)
                     )
@@ -292,8 +229,9 @@ private fun MovieCard(
                     Text(
                         text = "★ ${movie.rating}",
                         fontSize = 13.sp,
-                        color =
-                            MaterialTheme.colorScheme.primary
+                        color = MaterialTheme
+                            .colorScheme
+                            .primary
                     )
                 }
             }
@@ -301,17 +239,11 @@ private fun MovieCard(
     }
 }
 
-
-// =============================================================
-// CARD LIVE TV
-// =============================================================
-
 @Composable
 private fun LiveChannelCard(
     channel: LiveStream,
     onClick: () -> Unit
 ) {
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -319,118 +251,73 @@ private fun LiveChannelCard(
             .clickable {
                 onClick()
             },
-
         shape = RoundedCornerShape(12.dp),
-
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFF151515)
         ),
-
         elevation = CardDefaults.cardElevation(
             defaultElevation = 6.dp
         )
     ) {
-
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-
             if (!channel.stream_icon.isNullOrBlank()) {
-
                 AsyncImage(
-
                     model = channel.stream_icon,
-
-                    contentDescription =
-                        channel.name,
-
+                    contentDescription = channel.name,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                         .padding(15.dp),
-
-                    contentScale =
-                        ContentScale.Fit
+                    contentScale = ContentScale.Fit
                 )
-
             } else {
-
                 Box(
-
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
-
-                    contentAlignment =
-                        Alignment.Center
+                    contentAlignment = Alignment.Center
                 ) {
-
                     Text(
-                        "TV",
+                        text = "TV",
                         fontSize = 28.sp,
-                        fontWeight =
-                            FontWeight.Bold,
-                        color =
-                            MaterialTheme.colorScheme.primary
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme
+                            .colorScheme
+                            .primary
                     )
                 }
             }
 
             Text(
                 text = channel.name ?: "Canale",
-
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
                         horizontal = 14.dp,
                         vertical = 12.dp
                     ),
-
                 fontSize = 15.sp,
-
-                fontWeight =
-                    FontWeight.Bold
+                fontWeight = FontWeight.Bold
             )
         }
     }
 }
 
-
-// =============================================================
-// NESSUN CONTENUTO
-// =============================================================
-
 @Composable
 private fun EmptyContentMessage(
     text: String
 ) {
-
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-
-        Column(
-            horizontalAlignment =
-                Alignment.CenterHorizontally
-        ) {
-
-            Text(
-                text = text,
-                color =
-                    MaterialTheme.colorScheme
-                        .onSurfaceVariant
-            )
-
-            Spacer(
-                modifier = Modifier.height(12.dp)
-            )
-
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .width(0.dp)
-                    .height(0.dp)
-            )
-        }
+        Text(
+            text = text,
+            color = MaterialTheme
+                .colorScheme
+                .onSurfaceVariant
+        )
     }
 }
