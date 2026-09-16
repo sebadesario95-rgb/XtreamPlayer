@@ -15,17 +15,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.xtreamplayer.data.VodStream
 import com.example.xtreamplayer.viewmodel.AppViewModel
 
 private enum class HomeSection {
     HOME,
-
     LIVE,
     LIVE_CONTENT,
-
     MOVIES,
     MOVIE_CONTENT,
-
+    MOVIE_DETAILS,
     SERIES,
     SERIES_CONTENT
 }
@@ -36,7 +35,6 @@ fun HomeScreen(
     vm: AppViewModel,
     onPlay: (String) -> Unit
 ) {
-
     var currentSection by remember {
         mutableStateOf(HomeSection.HOME)
     }
@@ -45,62 +43,43 @@ fun HomeScreen(
         mutableStateOf<String?>(null)
     }
 
+    var selectedMovie by remember {
+        mutableStateOf<VodStream?>(null)
+    }
+
     when (currentSection) {
 
-        // =====================================================
-        // HOME
-        // =====================================================
-
         HomeSection.HOME -> {
-
             HomeMainScreen(
                 vm = vm,
-
                 onLiveClick = {
                     currentSection = HomeSection.LIVE
                 },
-
                 onMoviesClick = {
                     currentSection = HomeSection.MOVIES
                 },
-
                 onSeriesClick = {
                     currentSection = HomeSection.SERIES
                 }
             )
         }
 
-        // =====================================================
-        // LIVE - CATEGORIE
-        // =====================================================
-
         HomeSection.LIVE -> {
-
             CategoryScreen(
                 title = "LIVE TV",
-
                 categories = vm.liveCategories,
-
                 onCategoryClick = { categoryId ->
-
                     selectedCategoryId = categoryId
-
-                    currentSection = HomeSection.LIVE_CONTENT
+                    currentSection =
+                        HomeSection.LIVE_CONTENT
                 },
-
                 onBack = {
-
                     currentSection = HomeSection.HOME
                 }
             )
         }
 
-        // =====================================================
-        // LIVE - CANALI
-        // =====================================================
-
         HomeSection.LIVE_CONTENT -> {
-
             val categoryId = selectedCategoryId
 
             val channels = vm.live.filter {
@@ -109,58 +88,37 @@ fun HomeScreen(
 
             LiveContentScreen(
                 title = "LIVE TV",
-
                 streams = channels,
-
                 onPlay = { channel ->
-
                     channel.stream_id?.let { id ->
-
                         vm.streamUrl(
                             type = "live",
                             id = id
                         )?.let(onPlay)
                     }
                 },
-
                 onBack = {
-
                     currentSection = HomeSection.LIVE
                 }
             )
         }
 
-        // =====================================================
-        // FILM - CATEGORIE
-        // =====================================================
-
         HomeSection.MOVIES -> {
-
             CategoryScreen(
                 title = "FILM",
-
                 categories = vm.movieCategories,
-
                 onCategoryClick = { categoryId ->
-
                     selectedCategoryId = categoryId
-
-                    currentSection = HomeSection.MOVIE_CONTENT
+                    currentSection =
+                        HomeSection.MOVIE_CONTENT
                 },
-
                 onBack = {
-
                     currentSection = HomeSection.HOME
                 }
             )
         }
 
-        // =====================================================
-        // FILM - LISTA
-        // =====================================================
-
         HomeSection.MOVIE_CONTENT -> {
-
             val categoryId = selectedCategoryId
 
             val movies = vm.movies.filter {
@@ -169,59 +127,60 @@ fun HomeScreen(
 
             MovieContentScreen(
                 title = "FILM",
-
                 movies = movies,
-
-                onPlay = { movie ->
-
-                    movie.stream_id?.let { id ->
-
-                        vm.streamUrl(
-                            type = "movie",
-                            id = id,
-                            extension = movie.container_extension
-                        )?.let(onPlay)
-                    }
+                onMovieClick = { movie ->
+                    selectedMovie = movie
+                    currentSection =
+                        HomeSection.MOVIE_DETAILS
                 },
-
                 onBack = {
-
                     currentSection = HomeSection.MOVIES
                 }
             )
         }
 
-        // =====================================================
-        // SERIE TV - CATEGORIE
-        // =====================================================
+        HomeSection.MOVIE_DETAILS -> {
+            val movie = selectedMovie
+
+            if (movie != null) {
+                MovieDetailsScreen(
+                    movie = movie,
+
+                    onPlay = {
+                        movie.stream_id?.let { id ->
+                            vm.streamUrl(
+                                type = "movie",
+                                id = id,
+                                extension =
+                                    movie.container_extension
+                            )?.let(onPlay)
+                        }
+                    },
+
+                    onBack = {
+                        currentSection =
+                            HomeSection.MOVIE_CONTENT
+                    }
+                )
+            }
+        }
 
         HomeSection.SERIES -> {
-
             CategoryScreen(
                 title = "SERIE TV",
-
                 categories = vm.seriesCategories,
-
                 onCategoryClick = { categoryId ->
-
                     selectedCategoryId = categoryId
-
-                    currentSection = HomeSection.SERIES_CONTENT
+                    currentSection =
+                        HomeSection.SERIES_CONTENT
                 },
-
                 onBack = {
-
                     currentSection = HomeSection.HOME
                 }
             )
         }
 
-        // =====================================================
-        // SERIE TV - LISTA SERIE
-        // =====================================================
-
         HomeSection.SERIES_CONTENT -> {
-
             val categoryId = selectedCategoryId
 
             val series = vm.series.filter {
@@ -230,26 +189,17 @@ fun HomeScreen(
 
             SeriesContentScreen(
                 title = "SERIE TV",
-
                 series = series,
-
                 vm = vm,
-
                 onPlay = onPlay,
-
                 onBack = {
-
-                    currentSection = HomeSection.SERIES
+                    currentSection =
+                        HomeSection.SERIES
                 }
             )
         }
     }
 }
-
-
-// =============================================================
-// HOME PRINCIPALE
-// =============================================================
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -259,63 +209,44 @@ private fun HomeMainScreen(
     onMoviesClick: () -> Unit,
     onSeriesClick: () -> Unit
 ) {
-
     val account = vm.auth?.user_info
 
     Scaffold(
-
         topBar = {
-
             TopAppBar(
-
                 title = {
-
                     Text(
                         "XTREAM PLAYER",
                         fontWeight = FontWeight.Bold
                     )
                 },
-
                 actions = {
-
-                    // -------------------------------------------------
-                    // UPDATE
-                    // -------------------------------------------------
 
                     TextButton(
                         onClick = {
                             vm.updateCatalog()
                         },
-
                         enabled = !vm.loading
                     ) {
-
                         Text(
                             "UPDATE",
                             fontWeight = FontWeight.Bold
                         )
                     }
 
-                    // -------------------------------------------------
-                    // LOGOUT
-                    // -------------------------------------------------
-
                     TextButton(
                         onClick = {
                             vm.logout()
                         }
                     ) {
-
                         Text("LOGOUT")
                     }
                 }
             )
         }
-
     ) { pad ->
 
         Box(
-
             modifier = Modifier
                 .fillMaxSize()
                 .padding(pad)
@@ -325,7 +256,6 @@ private fun HomeMainScreen(
         ) {
 
             Column(
-
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(
@@ -337,16 +267,11 @@ private fun HomeMainScreen(
                     modifier = Modifier.height(35.dp)
                 )
 
-                // -------------------------------------------------
-                // BENVENUTO
-                // -------------------------------------------------
-
                 Text(
-
                     text = "Benvenuto ${account?.username ?: ""}",
-
-                    style = MaterialTheme.typography.headlineMedium,
-
+                    style = MaterialTheme
+                        .typography
+                        .headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -354,52 +279,31 @@ private fun HomeMainScreen(
                     modifier = Modifier.height(45.dp)
                 )
 
-                // -------------------------------------------------
-                // LE 3 CATEGORIE PRINCIPALI
-                // -------------------------------------------------
-
                 Row(
-
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(
                             rememberScrollState()
                         ),
-
                     horizontalArrangement =
                         Arrangement.spacedBy(20.dp)
                 ) {
 
-                    // LIVE TV
-
                     HomeCategoryCard(
-
                         title = "LIVE TV",
-
                         subtitle = "Canali televisivi",
-
                         onClick = onLiveClick
                     )
 
-                    // FILM
-
                     HomeCategoryCard(
-
                         title = "FILM",
-
                         subtitle = "Film e cinema",
-
                         onClick = onMoviesClick
                     )
 
-                    // SERIE TV
-
                     HomeCategoryCard(
-
                         title = "SERIE TV",
-
                         subtitle = "Serie e stagioni",
-
                         onClick = onSeriesClick
                     )
                 }
@@ -408,23 +312,15 @@ private fun HomeMainScreen(
                     modifier = Modifier.weight(1f)
                 )
 
-                // -------------------------------------------------
-                // SCADENZA
-                // -------------------------------------------------
-
                 account?.exp_date?.let { expiration ->
 
                     Text(
-
                         text = "SCADENZA ABBONAMENTO",
-
                         modifier = Modifier.fillMaxWidth(),
-
                         textAlign = TextAlign.Center,
-
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant,
-
+                        color = MaterialTheme
+                            .colorScheme
+                            .onSurfaceVariant,
                         fontSize = 13.sp
                     )
 
@@ -433,21 +329,16 @@ private fun HomeMainScreen(
                     )
 
                     Text(
-
                         text = formatExpirationDate(
                             expiration
                         ),
-
                         modifier = Modifier.fillMaxWidth(),
-
                         textAlign = TextAlign.Center,
-
                         fontSize = 17.sp,
-
                         fontWeight = FontWeight.Bold,
-
-                        color =
-                            MaterialTheme.colorScheme.primary
+                        color = MaterialTheme
+                            .colorScheme
+                            .primary
                     )
                 }
 
@@ -456,22 +347,15 @@ private fun HomeMainScreen(
                 )
             }
 
-            // -----------------------------------------------------
-            // LOADING UPDATE
-            // -----------------------------------------------------
-
             if (vm.loading) {
 
                 Box(
-
                     modifier = Modifier.fillMaxSize(),
-
                     contentAlignment =
                         Alignment.Center
                 ) {
 
                     Column(
-
                         horizontalAlignment =
                             Alignment.CenterHorizontally
                     ) {
@@ -479,7 +363,8 @@ private fun HomeMainScreen(
                         CircularProgressIndicator()
 
                         Spacer(
-                            modifier = Modifier.height(12.dp)
+                            modifier =
+                                Modifier.height(12.dp)
                         )
 
                         Text(
@@ -492,58 +377,43 @@ private fun HomeMainScreen(
     }
 }
 
-
-// =============================================================
-// CARD HOME
-// =============================================================
-
 @Composable
 private fun HomeCategoryCard(
     title: String,
     subtitle: String,
     onClick: () -> Unit
 ) {
-
     Card(
-
         modifier = Modifier
             .width(280.dp)
             .height(190.dp)
             .clickable {
                 onClick()
             },
-
         shape = RoundedCornerShape(18.dp),
-
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFF151515)
         ),
-
         elevation = CardDefaults.cardElevation(
             defaultElevation = 8.dp
         )
     ) {
 
         Column(
-
             modifier = Modifier
                 .fillMaxSize()
                 .padding(24.dp),
-
             verticalArrangement =
                 Arrangement.Center
         ) {
 
             Text(
-
                 text = title,
-
                 fontSize = 28.sp,
-
                 fontWeight = FontWeight.ExtraBold,
-
-                color =
-                    MaterialTheme.colorScheme.primary
+                color = MaterialTheme
+                    .colorScheme
+                    .primary
             )
 
             Spacer(
@@ -551,31 +421,22 @@ private fun HomeCategoryCard(
             )
 
             Text(
-
                 text = subtitle,
-
                 fontSize = 15.sp,
-
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme
+                    .colorScheme
+                    .onSurfaceVariant
             )
         }
     }
 }
 
-
-// =============================================================
-// DATA SCADENZA
-// =============================================================
-
 private fun formatExpirationDate(
     expiration: String
 ): String {
-
     return try {
 
-        val timestamp =
-            expiration.toLong()
+        val timestamp = expiration.toLong()
 
         val date =
             java.text.SimpleDateFormat(
@@ -590,7 +451,6 @@ private fun formatExpirationDate(
         )
 
     } catch (e: Exception) {
-
         expiration
     }
 }
