@@ -26,10 +26,21 @@ private enum class HomeSection {
 @Composable
 fun HomeScreen(
     vm: AppViewModel,
-    onPlay: (String) -> Unit
+    onPlay: (String) -> Unit,
+    onMoviePlay: (String, VodStream) -> Unit,
+    initialMovie: VodStream? = null,
+    onInitialMovieConsumed: () -> Unit = {}
 ) {
     var currentSection by remember {
         mutableStateOf(HomeSection.HOME)
+    }
+
+    /*
+     * Se arriviamo dal player con un film salvato,
+     * partiamo direttamente dalla sezione FILM.
+     */
+    if (initialMovie != null && currentSection == HomeSection.HOME) {
+        currentSection = HomeSection.MOVIES
     }
 
     when (currentSection) {
@@ -61,9 +72,11 @@ fun HomeScreen(
                     val parts = playData.split(":")
 
                     if (parts.size >= 2) {
+
                         val id = parts[1].toIntOrNull()
 
                         if (id != null) {
+
                             vm.streamUrl(
                                 type = "live",
                                 id = id
@@ -78,6 +91,8 @@ fun HomeScreen(
             MovieContentScreen(
                 categories = vm.movieCategories,
                 movies = vm.movies,
+                initialMovie = initialMovie,
+                onInitialMovieConsumed = onInitialMovieConsumed,
                 onBack = {
                     currentSection = HomeSection.HOME
                 },
@@ -86,15 +101,33 @@ fun HomeScreen(
                     val parts = playData.split(":")
 
                     if (parts.size >= 2) {
+
                         val id = parts[1].toIntOrNull()
-                        val extension = parts.getOrNull(2)
 
                         if (id != null) {
-                            vm.streamUrl(
-                                type = "movie",
-                                id = id,
-                                extension = extension
-                            )?.let(onPlay)
+
+                            val movie = vm.movies.firstOrNull {
+                                it.stream_id == id
+                            }
+
+                            if (movie != null) {
+
+                                val extension =
+                                    parts.getOrNull(2)
+                                        ?: movie.container_extension
+
+                                vm.streamUrl(
+                                    type = "movie",
+                                    id = id,
+                                    extension = extension
+                                )?.let { url ->
+
+                                    onMoviePlay(
+                                        url,
+                                        movie
+                                    )
+                                }
+                            }
                         }
                     }
                 }
