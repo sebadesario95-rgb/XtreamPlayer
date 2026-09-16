@@ -39,7 +39,6 @@ var selectedCategoryId by remember {
 mutableStateOf<String?>(null)
 }
 
-```
 var selectedSeries by remember {
     mutableStateOf<SeriesStream?>(null)
 }
@@ -104,7 +103,6 @@ if (selectedSeries != null) {
         }
     }
 }
-```
 
 }
 
@@ -138,7 +136,6 @@ Text("← INDIETRO")
 }
 ) { padding ->
 
-```
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -168,7 +165,6 @@ Text("← INDIETRO")
         }
     }
 }
-```
 
 }
 
@@ -191,7 +187,6 @@ bottom = 20.dp
 )
 ) {
 
-```
     item {
         SeriesSidebarItem(
             name = "TUTTI",
@@ -217,7 +212,6 @@ bottom = 20.dp
         )
     }
 }
-```
 
 }
 
@@ -234,7 +228,6 @@ Color(0xFFCAEA00)
 Color(0xFF151515)
 }
 
-```
 val textColor =
     if (selected) {
         Color.Black
@@ -271,7 +264,6 @@ Box(
         overflow = TextOverflow.Ellipsis
     )
 }
-```
 
 }
 
@@ -293,7 +285,6 @@ containerColor = Color(0xFF151515)
 shape = RoundedCornerShape(10.dp)
 ) {
 
-```
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -320,7 +311,6 @@ shape = RoundedCornerShape(10.dp)
         )
     }
 }
-```
 
 }
 
@@ -334,7 +324,6 @@ onBack: () -> Unit
 ) {
 val info = vm.selectedSeriesInfo
 
-```
 Scaffold(
     topBar = {
         TopAppBar(
@@ -471,7 +460,6 @@ Scaffold(
         }
     }
 }
-```
 
 }
 
@@ -486,7 +474,6 @@ Column(
 modifier = Modifier.fillMaxWidth()
 ) {
 
-```
     Text(
         text = seasonName,
         fontSize = 21.sp,
@@ -579,6 +566,5 @@ modifier = Modifier.fillMaxWidth()
         }
     }
 }
-```
 
 }
