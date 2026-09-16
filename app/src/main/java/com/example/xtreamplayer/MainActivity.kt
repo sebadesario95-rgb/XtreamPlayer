@@ -8,17 +8,22 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.xtreamplayer.data.SeriesStream
 import com.example.xtreamplayer.data.VodStream
-import com.example.xtreamplayer.ui.LoginScreen
 import com.example.xtreamplayer.ui.HomeScreen
+import com.example.xtreamplayer.ui.LoginScreen
 import com.example.xtreamplayer.ui.PlayerScreen
 import com.example.xtreamplayer.viewmodel.AppViewModel
 
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
+
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
         super.onCreate(savedInstanceState)
 
         setContent {
+
             MaterialTheme(
                 colorScheme = darkColorScheme(
                     background = Color(0xFF090909),
@@ -26,6 +31,7 @@ class MainActivity : ComponentActivity() {
                     primary = Color(0xFFCAEA00)
                 )
             ) {
+
                 val vm: AppViewModel = viewModel()
 
                 var playingUrl by remember {
@@ -36,18 +42,20 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf<VodStream?>(null)
                 }
 
+                var playingSeries by remember {
+                    mutableStateOf<SeriesStream?>(null)
+                }
+
+                var playingSeason by remember {
+                    mutableStateOf<String?>(null)
+                }
+
                 if (playingUrl != null) {
 
                     PlayerScreen(
                         url = playingUrl!!,
+
                         onBack = {
-                            /*
-                             * NON cancelliamo playingMovie.
-                             *
-                             * Quando torniamo indietro dal player,
-                             * HomeScreen riceverà il film e riaprirà
-                             * direttamente i suoi dettagli.
-                             */
                             playingUrl = null
                         }
                     )
@@ -55,36 +63,59 @@ class MainActivity : ComponentActivity() {
                 } else if (vm.loggedIn) {
 
                     HomeScreen(
+
                         vm = vm,
 
                         onPlay = { url ->
-                            // Live TV / Serie TV
+
                             playingMovie = null
+                            playingSeries = null
+                            playingSeason = null
+
                             playingUrl = url
                         },
 
                         onMoviePlay = { url, movie ->
-                            // Film: conserviamo anche il film corrente
+
                             playingMovie = movie
+
+                            playingSeries = null
+                            playingSeason = null
+
+                            playingUrl = url
+                        },
+
+                        onSeriesPlay = { url, series, season ->
+
+                            playingMovie = null
+
+                            playingSeries = series
+                            playingSeason = season
+
                             playingUrl = url
                         },
 
                         initialMovie = playingMovie,
 
+                        initialSeries = playingSeries,
+
+                        initialSeason = playingSeason,
+
                         onInitialMovieConsumed = {
-                            /*
-                             * Una volta ricreato HomeScreen con il film,
-                             * possiamo cancellare il riferimento dal livello
-                             * superiore. HomeScreen avrà già il suo stato locale.
-                             */
                             playingMovie = null
+                        },
+
+                        onInitialSeriesConsumed = {
+                            playingSeries = null
+                            playingSeason = null
                         }
                     )
 
                 } else {
 
-                    LoginScreen(vm = vm)
-
+                    LoginScreen(
+                        vm = vm
+                    )
                 }
             }
         }
