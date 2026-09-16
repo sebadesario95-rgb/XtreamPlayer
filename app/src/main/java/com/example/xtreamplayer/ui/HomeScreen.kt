@@ -20,7 +20,9 @@ import com.example.xtreamplayer.viewmodel.AppViewModel
 private enum class HomeSection {
     HOME,
     LIVE,
+    LIVE_CONTENT,
     MOVIES,
+    MOVIE_CONTENT,
     SERIES
 }
 
@@ -30,9 +32,9 @@ fun HomeScreen(
     vm: AppViewModel,
     onPlay: (String) -> Unit
 ) {
-    var currentSection by remember {
-        mutableStateOf(HomeSection.HOME)
-    }
+    var selectedCategoryId by remember {
+    mutableStateOf<String?>(null)
+}
 
     when (currentSection) {
 
@@ -51,33 +53,60 @@ fun HomeScreen(
             )
         }
 
-        HomeSection.LIVE -> {
-            CategoryScreen(
-                title = "LIVE TV",
-                categories = vm.liveCategories,
-                onCategoryClick = { categoryId ->
-                    // Prossimo passaggio:
-                    // apertura dei canali della categoria
-                },
-                onBack = {
-                    currentSection = HomeSection.HOME
-                }
-            )
-        }
+HomeSection.LIVE_CONTENT -> {
 
-        HomeSection.MOVIES -> {
-            CategoryScreen(
-                title = "FILM",
-                categories = vm.movieCategories,
-                onCategoryClick = { categoryId ->
-                    // Prossimo passaggio:
-                    // apertura dei film della categoria
-                },
-                onBack = {
-                    currentSection = HomeSection.HOME
-                }
-            )
+    val categoryId = selectedCategoryId
+
+    val channels = vm.live.filter {
+        it.category_id == categoryId
+    }
+
+    LiveContentScreen(
+        title = "LIVE TV",
+        streams = channels,
+        onPlay = { channel ->
+
+            channel.stream_id?.let { id ->
+
+                vm.streamUrl(
+                    type = "live",
+                    id = id
+                )?.let(onPlay)
+            }
+        },
+        onBack = {
+            currentSection = HomeSection.LIVE
         }
+    )
+}
+
+HomeSection.MOVIE_CONTENT -> {
+
+    val categoryId = selectedCategoryId
+
+    val movies = vm.movies.filter {
+        it.category_id == categoryId
+    }
+
+    MovieContentScreen(
+        title = "FILM",
+        movies = movies,
+        onPlay = { movie ->
+
+            movie.stream_id?.let { id ->
+
+                vm.streamUrl(
+                    type = "movie",
+                    id = id,
+                    extension = movie.container_extension
+                )?.let(onPlay)
+            }
+        },
+        onBack = {
+            currentSection = HomeSection.MOVIES
+        }
+    )
+}
 
         HomeSection.SERIES -> {
             CategoryScreen(
