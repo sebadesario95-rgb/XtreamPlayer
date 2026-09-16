@@ -4,6 +4,7 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface XtreamApiService {
+
     @GET("player_api.php")
     suspend fun authenticate(
         @Query("username") username: String,
@@ -51,4 +52,12 @@ interface XtreamApiService {
         @Query("password") password: String,
         @Query("action") action: String = "get_series"
     ): List<SeriesStream>
+
+    @GET("player_api.php")
+    suspend fun seriesInfo(
+        @Query("username") username: String,
+        @Query("password") password: String,
+        @Query("action") action: String = "get_series_info",
+        @Query("series_id") seriesId: Int
+    ): SeriesInfoResponse
 }
