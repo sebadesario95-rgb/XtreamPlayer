@@ -4,10 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyVerticalGrid
+import androidx.compose.foundation.lazy.GridCells
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,17 +16,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.xtreamplayer.data.Category
 import com.example.xtreamplayer.data.SeriesEpisode
-import com.example.xtreamplayer.data.SeriesInfoResponse
 import com.example.xtreamplayer.data.SeriesSeason
 import com.example.xtreamplayer.data.SeriesStream
 import com.example.xtreamplayer.viewmodel.AppViewModel
-
-private val SeriesAccent = Color(0xFFCAEA00)
 
 @Composable
 fun SeriesContentScreen(
@@ -47,7 +44,10 @@ var selectedSeries by remember {
     mutableStateOf<SeriesStream?>(null)
 }
 
-val filteredSeries =
+val filteredSeries = remember(
+    series,
+    selectedCategoryId
+) {
     if (selectedCategoryId == null) {
         series
     } else {
@@ -55,129 +55,118 @@ val filteredSeries =
             it.category_id == selectedCategoryId
         }
     }
+}
 
-if (selectedSeries == null) {
+if (selectedSeries != null) {
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF090909))
-            .padding(20.dp)
-    ) {
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            TextButton(
-                onClick = onBack
-            ) {
-                Text("← INDIETRO")
-            }
-
-            Spacer(
-                modifier = Modifier.width(18.dp)
-            )
-
-            Text(
-                text = title,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Spacer(
-            modifier = Modifier.height(15.dp)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxSize()
-        ) {
-
-            SeriesCategorySidebar(
-                categories = categories,
-                selectedCategoryId = selectedCategoryId,
-                onCategorySelected = {
-                    selectedCategoryId = it
-                }
-            )
-
-            Spacer(
-                modifier = Modifier.width(22.dp)
-            )
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            ) {
-
-                if (filteredSeries.isEmpty()) {
-
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-
-                        Text(
-                            "Nessuna serie disponibile.",
-                            color = MaterialTheme
-                                .colorScheme
-                                .onSurfaceVariant
-                        )
-                    }
-
-                } else {
-
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(
-                            minSize = 170.dp
-                        ),
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement =
-                            Arrangement.spacedBy(20.dp),
-                        horizontalArrangement =
-                            Arrangement.spacedBy(18.dp),
-                        contentPadding =
-                            PaddingValues(
-                                bottom = 30.dp
-                            )
-                    ) {
-
-                        items(filteredSeries) { show ->
-
-                            SeriesPosterCard(
-                                series = show,
-                                onClick = {
-
-                                    show.series_id?.let { id ->
-
-                                        vm.loadSeriesInfo(id)
-                                        selectedSeries = show
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-} else {
-
-    SeriesDetailsScreen(
+    SeriesDetailScreen(
         series = selectedSeries!!,
-        info = vm.selectedSeriesInfo,
-        loading = vm.loadingSeriesInfo,
         vm = vm,
         onPlay = onPlay,
         onBack = {
-            vm.clearSeriesInfo()
             selectedSeries = null
+            vm.clearSeriesInfo()
         }
     )
+
+} else {
+
+    SeriesWithSidebar(
+        title = title,
+        categories = categories,
+        selectedCategoryId = selectedCategoryId,
+        onCategorySelected = {
+            selectedCategoryId = it
+        },
+        onBack = onBack
+    ) {
+
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(150.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+
+            items(filteredSeries) { item ->
+
+                SeriesCard(
+                    series = item,
+                    onClick = {
+                        selectedSeries = item
+                        item.series_id?.let {
+                            vm.loadSeriesInfo(it)
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+```
+
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SeriesWithSidebar(
+title: String,
+categories: List<Category>,
+selectedCategoryId: String?,
+onCategorySelected: (String?) -> Unit,
+onBack: () -> Unit,
+content: @Composable () -> Unit
+) {
+Scaffold(
+topBar = {
+TopAppBar(
+title = {
+Text(
+title,
+fontWeight = FontWeight.Bold
+)
+},
+navigationIcon = {
+TextButton(
+onClick = onBack
+) {
+Text("← INDIETRO")
+}
+}
+)
+}
+) { padding ->
+
+```
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .background(Color(0xFF090909))
+    ) {
+
+        SeriesCategorySidebar(
+            categories = categories,
+            selectedCategoryId = selectedCategoryId,
+            onCategorySelected = onCategorySelected
+        )
+
+        VerticalDivider(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(1.dp),
+            color = Color(0xFF292929)
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(1f)
+        ) {
+            content()
+        }
+    }
 }
 ```
 
@@ -189,20 +178,21 @@ categories: List<Category>,
 selectedCategoryId: String?,
 onCategorySelected: (String?) -> Unit
 ) {
-
-```
 LazyColumn(
-    modifier = Modifier
-        .width(220.dp)
-        .fillMaxHeight(),
-    verticalArrangement = Arrangement.spacedBy(6.dp),
-    contentPadding = PaddingValues(
-        bottom = 20.dp
-    )
+modifier = Modifier
+.width(220.dp)
+.fillMaxHeight(),
+verticalArrangement = Arrangement.spacedBy(6.dp),
+contentPadding = PaddingValues(
+start = 12.dp,
+end = 12.dp,
+top = 16.dp,
+bottom = 20.dp
+)
 ) {
 
+```
     item {
-
         SeriesSidebarItem(
             name = "TUTTI",
             selected = selectedCategoryId == null,
@@ -237,43 +227,48 @@ name: String,
 selected: Boolean,
 onClick: () -> Unit
 ) {
+val backgroundColor =
+if (selected) {
+Color(0xFFCAEA00)
+} else {
+Color(0xFF151515)
+}
 
 ```
+val textColor =
+    if (selected) {
+        Color.Black
+    } else {
+        Color.White
+    }
+
 Box(
     modifier = Modifier
         .fillMaxWidth()
-        .height(52.dp)
         .clip(
-            RoundedCornerShape(10.dp)
+            RoundedCornerShape(8.dp)
         )
-        .background(
-            if (selected) {
-                SeriesAccent
-            } else {
-                Color(0xFF151515)
-            }
-        )
+        .background(backgroundColor)
         .clickable {
             onClick()
         }
-        .padding(horizontal = 16.dp),
-    contentAlignment = Alignment.CenterStart
+        .padding(
+            horizontal = 14.dp,
+            vertical = 12.dp
+        )
 ) {
 
     Text(
         text = name,
+        color = textColor,
         fontSize = 14.sp,
         fontWeight = if (selected) {
-            FontWeight.ExtraBold
+            FontWeight.Bold
         } else {
-            FontWeight.Medium
+            FontWeight.Normal
         },
-        color = if (selected) {
-            Color.Black
-        } else {
-            Color.White
-        },
-        maxLines = 1
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis
     )
 }
 ```
@@ -281,354 +276,196 @@ Box(
 }
 
 @Composable
-private fun SeriesPosterCard(
+private fun SeriesCard(
 series: SeriesStream,
 onClick: () -> Unit
 ) {
-
-```
 Card(
-    modifier = Modifier
-        .fillMaxWidth()
-        .clickable {
-            onClick()
-        },
-    shape = RoundedCornerShape(12.dp),
-    colors = CardDefaults.cardColors(
-        containerColor = Color(0xFF151515)
-    ),
-    elevation = CardDefaults.cardElevation(
-        defaultElevation = 6.dp
-    )
+modifier = Modifier
+.fillMaxWidth()
+.height(260.dp)
+.clickable {
+onClick()
+},
+colors = CardDefaults.cardColors(
+containerColor = Color(0xFF151515)
+),
+shape = RoundedCornerShape(10.dp)
 ) {
 
-    Column {
+```
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
 
-        if (!series.cover.isNullOrBlank()) {
+        AsyncImage(
+            model = series.cover,
+            contentDescription = series.name,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentScale = ContentScale.Crop
+        )
 
-            AsyncImage(
-                model = series.cover,
-                contentDescription = series.name,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(245.dp)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = 12.dp,
-                            topEnd = 12.dp
-                        )
-                    ),
-                contentScale = ContentScale.Crop
-            )
-
-        } else {
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(245.dp)
-                    .background(
-                        Color(0xFF202020)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-
-                Text(
-                    "NESSUNA IMMAGINE",
-                    color = MaterialTheme
-                        .colorScheme
-                        .onSurfaceVariant
-                )
-            }
-        }
-
-        Column(
-            modifier = Modifier.padding(14.dp)
-        ) {
-
-            Text(
-                text = series.name ?: "Serie",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2
-            )
-
-            if (!series.rating.isNullOrBlank()) {
-
-                Spacer(
-                    modifier = Modifier.height(5.dp)
-                )
-
-                Text(
-                    text = "★ ${series.rating}",
-                    fontSize = 13.sp,
-                    color = SeriesAccent
-                )
-            }
-        }
+        Text(
+            text = series.name ?: "Serie TV",
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            color = Color.White,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 ```
 
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SeriesDetailsScreen(
+private fun SeriesDetailScreen(
 series: SeriesStream,
-info: SeriesInfoResponse?,
-loading: Boolean,
 vm: AppViewModel,
 onPlay: (String) -> Unit,
 onBack: () -> Unit
 ) {
+val info = vm.selectedSeriesInfo
 
 ```
-var selectedSeason by remember {
-    mutableStateOf<Int?>(null)
-}
-
-Column(
-    modifier = Modifier
-        .fillMaxSize()
-        .background(Color(0xFF090909))
-        .padding(24.dp)
-) {
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-
-        TextButton(
-            onClick = onBack
-        ) {
-            Text("← INDIETRO")
-        }
-
-        Spacer(
-            modifier = Modifier.width(20.dp)
-        )
-
-        Text(
-            text = series.name ?: "Serie",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
+Scaffold(
+    topBar = {
+        TopAppBar(
+            title = {
+                Text(
+                    series.name ?: "Serie TV",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+            navigationIcon = {
+                TextButton(
+                    onClick = onBack
+                ) {
+                    Text("← INDIETRO")
+                }
+            }
         )
     }
+) { padding ->
 
-    Spacer(
-        modifier = Modifier.height(20.dp)
-    )
+    if (vm.loadingSeriesInfo) {
 
-    if (loading) {
-
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment =
-                Alignment.CenterHorizontally,
-            verticalArrangement =
-                Arrangement.Center
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(Color(0xFF090909)),
+            contentAlignment = Alignment.Center
         ) {
 
             CircularProgressIndicator()
-
-            Spacer(
-                modifier = Modifier.height(12.dp)
-            )
-
-            Text("Caricamento serie...")
         }
-
-    } else if (info == null) {
-
-        Text(
-            text = "Nessun dettaglio disponibile.",
-            color = MaterialTheme
-                .colorScheme
-                .onSurfaceVariant
-        )
 
     } else {
 
-        if (!info.info?.plot.isNullOrBlank()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(Color(0xFF090909)),
+            contentPadding = PaddingValues(24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
 
-            Text(
-                text = info.info?.plot ?: "",
-                fontSize = 14.sp,
-                color = MaterialTheme
-                    .colorScheme
-                    .onSurfaceVariant
-            )
+            item {
 
-            Spacer(
-                modifier = Modifier.height(20.dp)
-            )
-        }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
 
-        val seasons =
-            info.seasons ?: emptyList()
-
-        if (selectedSeason == null) {
-
-            Text(
-                text = "STAGIONI",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(
-                modifier = Modifier.height(15.dp)
-            )
-
-            if (seasons.isEmpty()) {
-
-                val seasonNumbers =
-                    info.episodes
-                        ?.keys
-                        ?.mapNotNull {
-                            it.toIntOrNull()
-                        }
-                        ?.sorted()
-                        ?: emptyList()
-
-                if (seasonNumbers.isEmpty()) {
-
-                    Text(
-                        text =
-                            "Nessuna stagione disponibile.",
-                        color = MaterialTheme
-                            .colorScheme
-                            .onSurfaceVariant
+                    AsyncImage(
+                        model = info?.info?.cover
+                            ?: series.cover,
+                        contentDescription = series.name,
+                        modifier = Modifier
+                            .width(220.dp)
+                            .height(320.dp)
+                            .clip(
+                                RoundedCornerShape(12.dp)
+                            ),
+                        contentScale = ContentScale.Crop
                     )
 
-                } else {
-
-                    LazyColumn(
-                        verticalArrangement =
-                            Arrangement.spacedBy(12.dp),
-                        contentPadding =
-                            PaddingValues(
-                                bottom = 20.dp
-                            )
+                    Column(
+                        modifier = Modifier.weight(1f)
                     ) {
 
-                        items(seasonNumbers) {
-                            seasonNumber ->
+                        Text(
+                            text = info?.info?.name
+                                ?: series.name
+                                ?: "Serie TV",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
 
-                            SeasonNumberCard(
-                                seasonNumber =
-                                    seasonNumber,
-                                onClick = {
-                                    selectedSeason =
-                                        seasonNumber
-                                }
+                        Spacer(
+                            modifier = Modifier.height(12.dp)
+                        )
+
+                        info?.info?.genre?.let {
+
+                            Text(
+                                text = it,
+                                color = Color(0xFFCAEA00),
+                                fontSize = 15.sp
+                            )
+
+                            Spacer(
+                                modifier = Modifier.height(8.dp)
+                            )
+                        }
+
+                        info?.info?.plot?.let {
+
+                            Text(
+                                text = it,
+                                color = Color.LightGray,
+                                fontSize = 15.sp,
+                                lineHeight = 21.sp
                             )
                         }
                     }
                 }
-
-            } else {
-
-                LazyColumn(
-                    verticalArrangement =
-                        Arrangement.spacedBy(12.dp),
-                    contentPadding =
-                        PaddingValues(
-                            bottom = 20.dp
-                        )
-                ) {
-
-                    items(seasons) { season ->
-
-                        SeasonCard(
-                            season = season,
-                            onClick = {
-                                selectedSeason =
-                                    season.season_number
-                            }
-                        )
-                    }
-                }
             }
 
-        } else {
+            if (info?.episodes != null) {
 
-            val episodes =
-                info.episodes
-                    ?.get(
-                        selectedSeason.toString()
+                val episodesMap = info.episodes!!
+
+                val seasonNumbers = episodesMap.keys
+                    .sortedWith(
+                        compareBy {
+                            it.toIntOrNull() ?: 0
+                        }
                     )
-                    ?: emptyList()
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
+                items(seasonNumbers) { seasonNumber ->
 
-                TextButton(
-                    onClick = {
-                        selectedSeason = null
-                    }
-                ) {
-                    Text("← STAGIONI")
-                }
+                    val episodes =
+                        episodesMap[seasonNumber]
+                            ?: emptyList()
 
-                Text(
-                    text =
-                        "STAGIONE $selectedSeason",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(
-                modifier = Modifier.height(15.dp)
-            )
-
-            if (episodes.isEmpty()) {
-
-                Text(
-                    text =
-                        "Nessun episodio disponibile.",
-                    color = MaterialTheme
-                        .colorScheme
-                        .onSurfaceVariant
-                )
-
-            } else {
-
-                LazyColumn(
-                    verticalArrangement =
-                        Arrangement.spacedBy(12.dp),
-                    contentPadding =
-                        PaddingValues(
-                            bottom = 20.dp
-                        )
-                ) {
-
-                    items(episodes) { episode ->
-
-                        EpisodeCard(
-                            episode = episode,
-                            onClick = {
-
-                                val episodeId =
-                                    episode.id
-                                        ?.toIntOrNull()
-
-                                if (episodeId != null) {
-
-                                    vm.streamUrl(
-                                        type = "series",
-                                        id = episodeId,
-                                        extension =
-                                            episode.container_extension
-                                    )?.let(onPlay)
-                                }
-                            }
-                        )
-                    }
+                    SeasonBlock(
+                        seasonName = "STAGIONE $seasonNumber",
+                        episodes = episodes,
+                        vm = vm,
+                        onPlay = onPlay
+                    )
                 }
             }
         }
@@ -639,145 +476,107 @@ Column(
 }
 
 @Composable
-private fun SeasonCard(
-season: SeriesSeason,
-onClick: () -> Unit
+private fun SeasonBlock(
+seasonName: String,
+episodes: List<SeriesEpisode>,
+vm: AppViewModel,
+onPlay: (String) -> Unit
+) {
+Column(
+modifier = Modifier.fillMaxWidth()
 ) {
 
 ```
-Card(
-    modifier = Modifier
-        .fillMaxWidth()
-        .height(80.dp)
-        .clickable {
-            onClick()
-        },
-    colors = CardDefaults.cardColors(
-        containerColor = Color(0xFF151515)
-    ),
-    elevation = CardDefaults.cardElevation(
-        defaultElevation = 5.dp
+    Text(
+        text = seasonName,
+        fontSize = 21.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color.White
     )
-) {
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(18.dp),
-        verticalArrangement =
-            Arrangement.Center
-    ) {
-
-        Text(
-            text = season.name
-                ?: "Stagione ${
-                    season.season_number ?: ""
-                }",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-```
-
-}
-
-@Composable
-private fun SeasonNumberCard(
-seasonNumber: Int,
-onClick: () -> Unit
-) {
-
-```
-Card(
-    modifier = Modifier
-        .fillMaxWidth()
-        .height(80.dp)
-        .clickable {
-            onClick()
-        },
-    colors = CardDefaults.cardColors(
-        containerColor = Color(0xFF151515)
-    ),
-    elevation = CardDefaults.cardElevation(
-        defaultElevation = 5.dp
+    Spacer(
+        modifier = Modifier.height(10.dp)
     )
-) {
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(18.dp),
-        verticalArrangement =
-            Arrangement.Center
-    ) {
+    episodes.forEach { episode ->
 
-        Text(
-            text = "STAGIONE $seasonNumber",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-```
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+                .clickable {
 
-}
+                    episode.id
+                        ?.toIntOrNull()
+                        ?.let { id ->
 
-@Composable
-private fun EpisodeCard(
-episode: SeriesEpisode,
-onClick: () -> Unit
-) {
+                            vm.streamUrl(
+                                type = "series",
+                                id = id,
+                                extension =
+                                    episode.container_extension
+                            )?.let(onPlay)
+                        }
+                },
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF151515)
+            )
+        ) {
 
-```
-Card(
-    modifier = Modifier
-        .fillMaxWidth()
-        .height(85.dp)
-        .clickable {
-            onClick()
-        },
-    colors = CardDefaults.cardColors(
-        containerColor = Color(0xFF151515)
-    ),
-    elevation = CardDefaults.cardElevation(
-        defaultElevation = 5.dp
-    )
-) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(
-                horizontal = 20.dp,
-                vertical = 14.dp
-            ),
-        verticalArrangement =
-            Arrangement.Center
-    ) {
+                AsyncImage(
+                    model = episode.info?.movie_image,
+                    contentDescription = episode.title,
+                    modifier = Modifier
+                        .width(120.dp)
+                        .height(70.dp)
+                        .clip(
+                            RoundedCornerShape(6.dp)
+                        ),
+                    contentScale = ContentScale.Crop
+                )
 
-        Text(
-            text =
-                "EPISODIO ${
-                    episode.episode_num ?: ""
-                }",
-            fontSize = 13.sp,
-            color = SeriesAccent,
-            fontWeight = FontWeight.Bold
-        )
+                Spacer(
+                    modifier = Modifier.width(14.dp)
+                )
 
-        Spacer(
-            modifier = Modifier.height(4.dp)
-        )
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
 
-        Text(
-            text =
-                episode.title
-                    ?: episode.info?.name
-                    ?: "Episodio",
-            fontSize = 17.sp,
-            fontWeight = FontWeight.Bold
-        )
+                    Text(
+                        text = episode.title
+                            ?: episode.info?.name
+                            ?: "Episodio",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    episode.info?.plot?.let {
+
+                        Spacer(
+                            modifier = Modifier.height(5.dp)
+                        )
+
+                        Text(
+                            text = it,
+                            color = Color.Gray,
+                            fontSize = 12.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 ```
