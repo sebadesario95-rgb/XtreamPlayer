@@ -65,3 +65,40 @@ data class SeriesStream(
     val rating: String? = null,
     val category_id: String? = null
 )
+
+data class SeriesInfoResponse(
+    val info: SeriesInfo? = null,
+    val episodes: Map<String, List<SeriesEpisode>>? = null,
+    val seasons: List<SeriesSeason>? = null
+)
+
+data class SeriesInfo(
+    val name: String? = null,
+    val cover: String? = null,
+    val plot: String? = null,
+    val genre: String? = null,
+    val rating: String? = null
+)
+
+data class SeriesSeason(
+    val season_number: Int? = null,
+    val name: String? = null,
+    val overview: String? = null,
+    val cover: String? = null
+)
+
+data class SeriesEpisode(
+    val id: String? = null,
+    val episode_num: Int? = null,
+    val title: String? = null,
+    val container_extension: String? = null,
+    val info: SeriesEpisodeInfo? = null
+)
+
+data class SeriesEpisodeInfo(
+    val name: String? = null,
+    val plot: String? = null,
+    val movie_image: String? = null,
+    val duration: String? = null,
+    val rating: String? = null
+)
