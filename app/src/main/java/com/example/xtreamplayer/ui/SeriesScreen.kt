@@ -1,4 +1,3 @@
-```kotlin
 package com.example.xtreamplayer.ui
 
 import androidx.compose.foundation.background
@@ -761,4 +760,3 @@ private fun EpisodeCard(
         }
     }
 }
-```
