@@ -19,11 +19,17 @@ import com.example.xtreamplayer.data.LiveStream
 import com.example.xtreamplayer.data.SeriesStream
 import com.example.xtreamplayer.data.VodStream
 import com.example.xtreamplayer.viewmodel.AppViewModel
+import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private val HomeBlue = Color(0xFF1677FF)
-private val HomeBackground = Color(0xFF05070B)
-private val HomeSurface = Color(0xFF0D121A)
-private val HomeMuted = Color(0xFF94A3B8)
+private val HomeBlueLight = Color(0xFF20B7FF)
+private val HomeBackground = Color(0xFF02060B)
+private val HomeCard = Color(0xE60A1420)
+private val HomeBorder = Color(0xFF1A3047)
+private val HomeMuted = Color(0xFF9AA8B8)
 
 private enum class HomeSection {
     HOME,
@@ -47,6 +53,7 @@ fun HomeScreen(
     onInitialSeriesConsumed: () -> Unit = {},
     onInitialLiveConsumed: () -> Unit = {}
 ) {
+
     var currentSection by remember {
         mutableStateOf(HomeSection.HOME)
     }
@@ -223,318 +230,497 @@ private fun HomeMainScreen(
     onMoviesClick: () -> Unit,
     onSeriesClick: () -> Unit
 ) {
-    Scaffold(
-        containerColor = HomeBackground,
-        topBar = {
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(72.dp)
-                    .background(Color(0xFF080B10))
-                    .padding(horizontal = 28.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+    var currentTime by remember {
+        mutableStateOf(getCurrentTime())
+    }
 
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .background(
-                            HomeBlue,
-                            RoundedCornerShape(10.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "▶",
-                        color = Color.White,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+    LaunchedEffect(Unit) {
+        while (true) {
+            currentTime = getCurrentTime()
+            delay(1000L)
+        }
+    }
 
-                Spacer(
-                    modifier = Modifier.width(12.dp)
+    val expiration =
+        vm.auth?.user_info?.exp_date
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(HomeBackground)
+    ) {
+
+        HomeBackgroundDecoration()
+
+        // -----------------------------------------
+        // LOGO - ALTO SINISTRA
+        // -----------------------------------------
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(
+                    start = 42.dp,
+                    top = 28.dp
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Text(
+                text = "X",
+                color = HomeBlue,
+                fontSize = 46.sp,
+                fontWeight = FontWeight.Black
+            )
+
+            Spacer(
+                modifier = Modifier.width(6.dp)
+            )
+
+            Column {
+
+                Text(
+                    text = "TREAM",
+                    color = Color.White,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 1.sp
                 )
 
                 Text(
-                    text = "XTREAM PLAYER",
+                    text = "P L A Y E R",
                     color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 0.5.sp,
-                    modifier = Modifier.weight(1f)
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 3.sp
                 )
+            }
+        }
 
-                TextButton(
-                    onClick = {
-                        vm.updateCatalog()
-                    }
+        // -----------------------------------------
+        // VPN + OROLOGIO REALE
+        // -----------------------------------------
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(
+                    end = 42.dp,
+                    top = 30.dp
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Surface(
+                color = Color(0x66061321),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(
+                    1.dp,
+                    Color(0xAA0B4B8F)
+                )
+            ) {
+
+                Row(
+                    modifier = Modifier.padding(
+                        horizontal = 14.dp,
+                        vertical = 8.dp
+                    ),
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
+
                     Text(
-                        text = "AGGIORNA",
+                        text = "◇",
                         color = HomeBlue,
+                        fontSize = 23.sp,
                         fontWeight = FontWeight.Bold
                     )
-                }
 
-                Spacer(
-                    modifier = Modifier.width(6.dp)
-                )
+                    Spacer(
+                        modifier = Modifier.width(8.dp)
+                    )
 
-                TextButton(
-                    onClick = {
-                        vm.logout()
+                    Column {
+
+                        Text(
+                            text = "VPN",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            text = "ATTIVA",
+                            color = HomeBlueLight,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
                     }
+                }
+            }
+
+            Spacer(
+                modifier = Modifier.width(20.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(30.dp)
+                    .background(
+                        Color.White.copy(alpha = 0.35f)
+                    )
+            )
+
+            Spacer(
+                modifier = Modifier.width(20.dp)
+            )
+
+            Text(
+                text = currentTime,
+                color = Color.White,
+                fontSize = 21.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        // -----------------------------------------
+        // TESTO CENTRALE
+        // -----------------------------------------
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 72.dp),
+            horizontalAlignment =
+                Alignment.CenterHorizontally
+        ) {
+
+            Text(
+                text = "B E N V E N U T O   S U",
+                color = HomeMuted,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(
+                modifier = Modifier.height(7.dp)
+            )
+
+            Text(
+                text = "X T R E A M   P L A Y E R",
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Light,
+                letterSpacing = 2.sp
+            )
+
+            Spacer(
+                modifier = Modifier.height(7.dp)
+            )
+
+            Text(
+                text = "IL TUO MONDO IN UN'UNICA APP",
+                color = HomeMuted,
+                fontSize = 10.sp,
+                letterSpacing = 2.sp
+            )
+        }
+
+        // -----------------------------------------
+        // TRE CARD CENTRALI
+        // -----------------------------------------
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .padding(horizontal = 105.dp),
+            horizontalArrangement =
+                Arrangement.spacedBy(18.dp),
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            MinimalHomeCard(
+                title = "LIVE TV",
+                icon = "▣",
+                modifier = Modifier.weight(1f),
+                onClick = onLiveClick
+            )
+
+            MinimalHomeCard(
+                title = "FILM",
+                icon = "▶",
+                modifier = Modifier.weight(1f),
+                onClick = onMoviesClick
+            )
+
+            MinimalHomeCard(
+                title = "SERIE TV",
+                icon = "▤",
+                modifier = Modifier.weight(1f),
+                onClick = onSeriesClick
+            )
+        }
+
+        // -----------------------------------------
+        // SCADENZA - BASSO SINISTRA
+        // -----------------------------------------
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(
+                    start = 42.dp,
+                    bottom = 30.dp
+                )
+        ) {
+
+            Text(
+                text =
+                    if (!expiration.isNullOrBlank()) {
+                        "SCADENZA: ${
+                            formatExpirationDate(
+                                expiration
+                            )
+                        }"
+                    } else {
+                        "SCADENZA: --/--/----"
+                    },
+                color = Color(0xFFD3D9E0),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 1.sp
+            )
+
+            Spacer(
+                modifier = Modifier.height(10.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .width(38.dp)
+                    .height(3.dp)
+                    .background(
+                        HomeBlue,
+                        RoundedCornerShape(50)
+                    )
+            )
+        }
+
+        // -----------------------------------------
+        // IMPOSTAZIONI + AGGIORNA
+        // -----------------------------------------
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(
+                    end = 34.dp,
+                    bottom = 22.dp
+                ),
+            horizontalArrangement =
+                Arrangement.spacedBy(12.dp)
+        ) {
+
+            BottomActionButton(
+                title = "IMPOSTAZIONI",
+                icon = "⚙",
+                onClick = {
+                    // TODO:
+                    // collegheremo qui la schermata
+                    // Impostazioni.
+                }
+            )
+
+            BottomActionButton(
+                title = "AGGIORNA",
+                icon = "↻",
+                highlighted = true,
+                onClick = {
+                    vm.updateCatalog()
+                }
+            )
+        }
+
+        // -----------------------------------------
+        // LOADING
+        // -----------------------------------------
+
+        if (vm.loading) {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Color.Black.copy(alpha = 0.65f)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+
+                Column(
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally
                 ) {
+
+                    CircularProgressIndicator(
+                        color = HomeBlue,
+                        strokeWidth = 3.dp
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(14.dp)
+                    )
+
                     Text(
-                        text = "ESCI",
-                        color = Color.LightGray
+                        text = "Aggiornamento catalogo...",
+                        color = Color.White,
+                        fontSize = 13.sp
                     )
                 }
             }
         }
-    ) { padding ->
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFF071326),
-                            HomeBackground,
-                            HomeBackground
-                        )
-                    )
-                )
-        ) {
+        // -----------------------------------------
+        // ERRORE
+        // -----------------------------------------
 
-            BoxWithConstraints(
+        vm.error?.let { error ->
+
+            Surface(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 30.dp)
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 22.dp),
+                color =
+                    MaterialTheme.colorScheme.errorContainer,
+                shape = RoundedCornerShape(12.dp)
             ) {
 
-                val wideLayout = maxWidth >= 760.dp
-
-                Column(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-
-                    Spacer(
-                        modifier = Modifier.height(42.dp)
-                    )
-
-                    Text(
-                        text = "BENTORNATO",
-                        color = HomeBlue,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.5.sp
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(7.dp)
-                    )
-
-                    Text(
-                        text =
-                            vm.auth?.user_info?.username
-                                ?: vm.credentials?.username
-                                ?: "Utente",
-                        color = Color.White,
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(8.dp)
-                    )
-
-                    Text(
-                        text = "Cosa vuoi guardare oggi?",
-                        color = HomeMuted,
-                        fontSize = 16.sp
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(36.dp)
-                    )
-
-                    if (wideLayout) {
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement =
-                                Arrangement.spacedBy(18.dp)
-                        ) {
-
-                            StreamingCategoryCard(
-                                title = "LIVE TV",
-                                subtitle =
-                                    "Guarda i tuoi canali in diretta",
-                                symbol = "●",
-                                modifier = Modifier.weight(1f),
-                                onClick = onLiveClick
-                            )
-
-                            StreamingCategoryCard(
-                                title = "FILM",
-                                subtitle =
-                                    "Esplora il catalogo dei film",
-                                symbol = "▶",
-                                modifier = Modifier.weight(1f),
-                                onClick = onMoviesClick
-                            )
-
-                            StreamingCategoryCard(
-                                title = "SERIE TV",
-                                subtitle =
-                                    "Continua con le tue serie",
-                                symbol = "▣",
-                                modifier = Modifier.weight(1f),
-                                onClick = onSeriesClick
-                            )
-                        }
-
-                    } else {
-
-                        Column(
-                            verticalArrangement =
-                                Arrangement.spacedBy(14.dp)
-                        ) {
-
-                            StreamingCategoryCard(
-                                title = "LIVE TV",
-                                subtitle =
-                                    "Guarda i tuoi canali in diretta",
-                                symbol = "●",
-                                modifier =
-                                    Modifier.fillMaxWidth(),
-                                onClick = onLiveClick
-                            )
-
-                            StreamingCategoryCard(
-                                title = "FILM",
-                                subtitle =
-                                    "Esplora il catalogo dei film",
-                                symbol = "▶",
-                                modifier =
-                                    Modifier.fillMaxWidth(),
-                                onClick = onMoviesClick
-                            )
-
-                            StreamingCategoryCard(
-                                title = "SERIE TV",
-                                subtitle =
-                                    "Continua con le tue serie",
-                                symbol = "▣",
-                                modifier =
-                                    Modifier.fillMaxWidth(),
-                                onClick = onSeriesClick
-                            )
-                        }
-                    }
-
-                    Spacer(
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    AccountInfoCard(
-                        vm = vm
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(22.dp)
-                    )
-                }
-            }
-
-            if (vm.loading) {
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Color.Black.copy(
-                                alpha = 0.68f
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-
-                    Column(
-                        horizontalAlignment =
-                            Alignment.CenterHorizontally
-                    ) {
-
-                        CircularProgressIndicator(
-                            color = HomeBlue
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(14.dp)
-                        )
-
-                        Text(
-                            text = "Aggiornamento catalogo...",
-                            color = Color.White,
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-            }
-
-            vm.error?.let { error ->
-
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(20.dp),
+                Text(
+                    text = error,
                     color =
-                        MaterialTheme.colorScheme.errorContainer,
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-
-                    Text(
-                        text = error,
-                        color =
-                            MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(
-                            horizontal = 18.dp,
-                            vertical = 12.dp
-                        ),
-                        textAlign = TextAlign.Center
-                    )
-                }
+                        MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(
+                        horizontal = 18.dp,
+                        vertical = 10.dp
+                    ),
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
 }
 
 @Composable
-private fun StreamingCategoryCard(
+private fun HomeBackgroundDecoration() {
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+
+        // Bagliore blu sinistro
+
+        Box(
+            modifier = Modifier
+                .size(520.dp)
+                .offset(
+                    x = (-250).dp,
+                    y = 100.dp
+                )
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0x551677FF),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
+        // Bagliore blu destro
+
+        Box(
+            modifier = Modifier
+                .size(560.dp)
+                .align(Alignment.CenterEnd)
+                .offset(x = 260.dp)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0x441677FF),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
+        // Fascia luminosa inferiore
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(190.dp)
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color(0x220066FF),
+                            Color(0x33001435),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
+        // Linea blu decorativa
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.72f)
+                .height(2.dp)
+                .align(Alignment.BottomCenter)
+                .offset(y = (-105).dp)
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            HomeBlue.copy(alpha = 0.15f),
+                            HomeBlueLight.copy(alpha = 0.75f),
+                            HomeBlue.copy(alpha = 0.15f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+    }
+}
+
+@Composable
+private fun MinimalHomeCard(
     title: String,
-    subtitle: String,
-    symbol: String,
+    icon: String,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+
     Card(
         modifier = modifier
-            .height(190.dp)
+            .height(170.dp)
             .clickable {
                 onClick()
             },
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = HomeSurface
+            containerColor = HomeCard
         ),
         border = BorderStroke(
             1.dp,
-            Color(0xFF1E2938)
+            HomeBorder
         )
     ) {
 
@@ -543,37 +729,27 @@ private fun StreamingCategoryCard(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        listOf(
-                            Color(0xFF14243C),
-                            HomeSurface
+                        colors = listOf(
+                            Color(0xFF102033),
+                            Color(0xFF07101A)
                         )
                     )
                 )
-                .padding(22.dp)
         ) {
 
             Column(
                 modifier =
-                    Modifier.align(Alignment.BottomStart)
+                    Modifier.align(Alignment.Center),
+                horizontalAlignment =
+                    Alignment.CenterHorizontally
             ) {
 
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .background(
-                            HomeBlue.copy(alpha = 0.15f),
-                            RoundedCornerShape(12.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-
-                    Text(
-                        text = symbol,
-                        color = HomeBlue,
-                        fontSize = 21.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Text(
+                    text = icon,
+                    color = Color.White,
+                    fontSize = 38.sp,
+                    fontWeight = FontWeight.Light
+                )
 
                 Spacer(
                     modifier = Modifier.height(20.dp)
@@ -582,122 +758,98 @@ private fun StreamingCategoryCard(
                 Text(
                     text = title,
                     color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
                 )
 
                 Spacer(
-                    modifier = Modifier.height(5.dp)
+                    modifier = Modifier.height(14.dp)
                 )
 
-                Text(
-                    text = subtitle,
-                    color = HomeMuted,
-                    fontSize = 13.sp
+                Box(
+                    modifier = Modifier
+                        .width(36.dp)
+                        .height(3.dp)
+                        .background(
+                            HomeBlue.copy(alpha = 0.65f),
+                            RoundedCornerShape(50)
+                        )
                 )
             }
-
-            Text(
-                text = "›",
-                color = HomeBlue,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Light,
-                modifier =
-                    Modifier.align(Alignment.CenterEnd)
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .align(Alignment.BottomCenter)
-                    .background(HomeBlue)
-            )
         }
     }
 }
 
 @Composable
-private fun AccountInfoCard(
-    vm: AppViewModel
+private fun BottomActionButton(
+    title: String,
+    icon: String,
+    highlighted: Boolean = false,
+    onClick: () -> Unit
 ) {
-    val expiration =
-        vm.auth?.user_info?.exp_date
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = HomeSurface.copy(alpha = 0.8f),
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .width(118.dp)
+            .height(72.dp)
+            .clickable {
+                onClick()
+            },
+        color = Color(0xB207101A),
+        shape = RoundedCornerShape(14.dp),
         border = BorderStroke(
             1.dp,
-            Color(0x222B8CFF)
+            if (highlighted) {
+                HomeBlue.copy(alpha = 0.35f)
+            } else {
+                HomeBorder
+            }
         )
     ) {
 
-        Row(
-            modifier = Modifier.padding(
-                horizontal = 20.dp,
-                vertical = 14.dp
-            ),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment =
+                Alignment.CenterHorizontally
         ) {
 
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Text(
+                text = icon,
+                color =
+                    if (highlighted) {
+                        HomeBlue
+                    } else {
+                        Color(0xFFB7C4D4)
+                    },
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-                Text(
-                    text = "ACCOUNT",
-                    color = HomeMuted,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            Spacer(
+                modifier = Modifier.height(4.dp)
+            )
 
-                Spacer(
-                    modifier = Modifier.height(3.dp)
-                )
-
-                Text(
-                    text =
-                        vm.auth?.user_info?.username
-                            ?: vm.credentials?.username
-                            ?: "",
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            if (!expiration.isNullOrBlank()) {
-
-                Column(
-                    horizontalAlignment = Alignment.End
-                ) {
-
-                    Text(
-                        text = "SCADENZA",
-                        color = HomeMuted,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(3.dp)
-                    )
-
-                    Text(
-                        text =
-                            formatExpirationDate(
-                                expiration
-                            ),
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 0.7.sp
+            )
         }
     }
+}
+
+private fun getCurrentTime(): String {
+
+    return SimpleDateFormat(
+        "HH:mm",
+        Locale.getDefault()
+    ).format(
+        Date()
+    )
 }
 
 private fun formatExpirationDate(
@@ -714,13 +866,13 @@ private fun formatExpirationDate(
             value.toLong()
 
         val date =
-            java.text.SimpleDateFormat(
+            SimpleDateFormat(
                 "dd/MM/yyyy",
-                java.util.Locale.getDefault()
+                Locale.getDefault()
             )
 
         date.format(
-            java.util.Date(
+            Date(
                 timestamp * 1000L
             )
         )
