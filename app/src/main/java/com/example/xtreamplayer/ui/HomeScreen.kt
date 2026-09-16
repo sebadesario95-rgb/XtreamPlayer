@@ -1,12 +1,15 @@
 package com.example.xtreamplayer.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -16,6 +19,11 @@ import com.example.xtreamplayer.data.LiveStream
 import com.example.xtreamplayer.data.SeriesStream
 import com.example.xtreamplayer.data.VodStream
 import com.example.xtreamplayer.viewmodel.AppViewModel
+
+private val HomeBlue = Color(0xFF1677FF)
+private val HomeBackground = Color(0xFF05070B)
+private val HomeSurface = Color(0xFF0D121A)
+private val HomeMuted = Color(0xFF94A3B8)
 
 private enum class HomeSection {
     HOME,
@@ -39,7 +47,6 @@ fun HomeScreen(
     onInitialSeriesConsumed: () -> Unit = {},
     onInitialLiveConsumed: () -> Unit = {}
 ) {
-
     var currentSection by remember {
         mutableStateOf(HomeSection.HOME)
     }
@@ -49,88 +56,58 @@ fun HomeScreen(
         initialSeries,
         initialLive
     ) {
-
         when {
-
             initialMovie != null -> {
-                currentSection =
-                    HomeSection.MOVIES
+                currentSection = HomeSection.MOVIES
             }
 
             initialSeries != null -> {
-                currentSection =
-                    HomeSection.SERIES
+                currentSection = HomeSection.SERIES
             }
 
             initialLive != null -> {
-                currentSection =
-                    HomeSection.LIVE
+                currentSection = HomeSection.LIVE
             }
         }
     }
 
     when (currentSection) {
 
-        // -----------------------------------------
-        // HOME
-        // -----------------------------------------
-
         HomeSection.HOME -> {
-
             HomeMainScreen(
                 vm = vm,
-
                 onLiveClick = {
-                    currentSection =
-                        HomeSection.LIVE
+                    currentSection = HomeSection.LIVE
                 },
-
                 onMoviesClick = {
-                    currentSection =
-                        HomeSection.MOVIES
+                    currentSection = HomeSection.MOVIES
                 },
-
                 onSeriesClick = {
-                    currentSection =
-                        HomeSection.SERIES
+                    currentSection = HomeSection.SERIES
                 }
             )
         }
 
-        // -----------------------------------------
-        // LIVE TV
-        // -----------------------------------------
-
         HomeSection.LIVE -> {
-
             LiveContentScreen(
-    title = "LIVE TV",
-    categories = vm.liveCategories,
-    streams = vm.live,
-    vm = vm,
-
-                // QUI RIPRISTINIAMO LA CATEGORIA
-                initialCategoryId =
-                    initialLive?.category_id,
-
+                title = "LIVE TV",
+                categories = vm.liveCategories,
+                streams = vm.live,
+                vm = vm,
+                initialCategoryId = initialLive?.category_id,
                 onInitialLiveConsumed = {
                     onInitialLiveConsumed()
                 },
-
                 onBack = {
-                    currentSection =
-                        HomeSection.HOME
+                    currentSection = HomeSection.HOME
                 },
-
                 onPlay = { playData ->
 
-                    val parts =
-                        playData.split(":")
+                    val parts = playData.split(":")
 
                     if (parts.size >= 2) {
 
-                        val id =
-                            parts[1].toIntOrNull()
+                        val id = parts[1].toIntOrNull()
 
                         if (id != null) {
 
@@ -158,38 +135,25 @@ fun HomeScreen(
             )
         }
 
-        // -----------------------------------------
-        // FILM
-        // -----------------------------------------
-
         HomeSection.MOVIES -> {
-
             MovieContentScreen(
-    title = "FILM",
-    categories = vm.movieCategories,
-    movies = vm.movies,
-    vm = vm,
-
-                initialMovie =
-                    initialMovie,
-
+                title = "FILM",
+                categories = vm.movieCategories,
+                movies = vm.movies,
+                vm = vm,
+                initialMovie = initialMovie,
                 onInitialMovieConsumed =
                     onInitialMovieConsumed,
-
                 onBack = {
-                    currentSection =
-                        HomeSection.HOME
+                    currentSection = HomeSection.HOME
                 },
-
                 onPlay = { playData ->
 
-                    val parts =
-                        playData.split(":")
+                    val parts = playData.split(":")
 
                     if (parts.size >= 2) {
 
-                        val id =
-                            parts[1].toIntOrNull()
+                        val id = parts[1].toIntOrNull()
 
                         if (id != null) {
 
@@ -222,26 +186,13 @@ fun HomeScreen(
             )
         }
 
-        // -----------------------------------------
-        // SERIE TV
-        // -----------------------------------------
-
         HomeSection.SERIES -> {
-
             SeriesContentScreen(
                 title = "SERIE TV",
-
-                categories =
-                    vm.seriesCategories,
-
-                series =
-                    vm.series,
-
+                categories = vm.seriesCategories,
+                series = vm.series,
                 vm = vm,
-
-                onPlay =
-                    onPlay,
-
+                onPlay = onPlay,
                 onSeriesPlay = {
                         url,
                         series,
@@ -253,19 +204,12 @@ fun HomeScreen(
                         season
                     )
                 },
-
-                initialSeries =
-                    initialSeries,
-
-                initialSeason =
-                    initialSeason,
-
+                initialSeries = initialSeries,
+                initialSeason = initialSeason,
                 onInitialSeriesConsumed =
                     onInitialSeriesConsumed,
-
                 onBack = {
-                    currentSection =
-                        HomeSection.HOME
+                    currentSection = HomeSection.HOME
                 }
             )
         }
@@ -279,46 +223,47 @@ private fun HomeMainScreen(
     onMoviesClick: () -> Unit,
     onSeriesClick: () -> Unit
 ) {
-
-    val accentColor =
-        Color(0xFFCAEA00)
-
-    val backgroundColor =
-        Color(0xFF090909)
-
-    val surfaceColor =
-        Color(0xFF151515)
-
     Scaffold(
-        containerColor =
-            backgroundColor,
-
+        containerColor = HomeBackground,
         topBar = {
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
-                    .background(
-                        surfaceColor
-                    )
-                    .padding(
-                        horizontal = 20.dp
-                    ),
-
-                verticalAlignment =
-                    Alignment.CenterVertically
+                    .height(72.dp)
+                    .background(Color(0xFF080B10))
+                    .padding(horizontal = 28.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .background(
+                            HomeBlue,
+                            RoundedCornerShape(10.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "▶",
+                        color = Color.White,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(
+                    modifier = Modifier.width(12.dp)
+                )
 
                 Text(
                     text = "XTREAM PLAYER",
-
                     color = Color.White,
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-
-                    modifier =
-                        Modifier.weight(1f)
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.5.sp,
+                    modifier = Modifier.weight(1f)
                 )
 
                 TextButton(
@@ -326,22 +271,24 @@ private fun HomeMainScreen(
                         vm.updateCatalog()
                     }
                 ) {
-
                     Text(
-                        text = "UPDATE",
-                        color = accentColor,
+                        text = "AGGIORNA",
+                        color = HomeBlue,
                         fontWeight = FontWeight.Bold
                     )
                 }
+
+                Spacer(
+                    modifier = Modifier.width(6.dp)
+                )
 
                 TextButton(
                     onClick = {
                         vm.logout()
                     }
                 ) {
-
                     Text(
-                        text = "LOGOUT",
+                        text = "ESCI",
                         color = Color.LightGray
                     )
                 }
@@ -354,110 +301,153 @@ private fun HomeMainScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .background(
-                    backgroundColor
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xFF071326),
+                            HomeBackground,
+                            HomeBackground
+                        )
+                    )
                 )
         ) {
 
-            Column(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(
-                        horizontal = 30.dp
-                    ),
-
-                horizontalAlignment =
-                    Alignment.CenterHorizontally
+                    .padding(horizontal = 30.dp)
             ) {
 
-                Spacer(
-                    modifier = Modifier.height(40.dp)
-                )
+                val wideLayout = maxWidth >= 760.dp
 
-                Text(
-                    text = "BENVENUTO",
-                    color = Color.Gray,
-                    fontSize = 14.sp
-                )
-
-                Spacer(
-                    modifier = Modifier.height(6.dp)
-                )
-
-                Text(
-                    text =
-                        vm.auth?.user_info?.username
-                            ?: vm.credentials?.username
-                            ?: "",
-
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(
-                    modifier = Modifier.height(50.dp)
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentWidth(),
-
-                    horizontalArrangement =
-                        Arrangement.spacedBy(22.dp),
-
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.fillMaxSize()
                 ) {
 
-                    HomeCategoryCard(
-                        title = "LIVE TV",
-                        modifier =
-                            Modifier.width(210.dp),
-
-                        onClick =
-                            onLiveClick
+                    Spacer(
+                        modifier = Modifier.height(42.dp)
                     )
 
-                    HomeCategoryCard(
-                        title = "FILM",
-                        modifier =
-                            Modifier.width(210.dp),
-
-                        onClick =
-                            onMoviesClick
+                    Text(
+                        text = "BENTORNATO",
+                        color = HomeBlue,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp
                     )
 
-                    HomeCategoryCard(
-                        title = "SERIE TV",
-                        modifier =
-                            Modifier.width(210.dp),
-
-                        onClick =
-                            onSeriesClick
+                    Spacer(
+                        modifier = Modifier.height(7.dp)
                     )
-                }
-
-                Spacer(
-                    modifier = Modifier.weight(1f)
-                )
-
-                val expiration =
-                    vm.auth?.user_info?.exp_date
-
-                if (!expiration.isNullOrBlank()) {
 
                     Text(
                         text =
-                            "SCADENZA: ${formatExpirationDate(expiration)}",
+                            vm.auth?.user_info?.username
+                                ?: vm.credentials?.username
+                                ?: "Utente",
+                        color = Color.White,
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
 
-                        color = Color.Gray,
-                        fontSize = 13.sp,
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
 
-                        modifier =
-                            Modifier.padding(
-                                bottom = 18.dp
+                    Text(
+                        text = "Cosa vuoi guardare oggi?",
+                        color = HomeMuted,
+                        fontSize = 16.sp
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(36.dp)
+                    )
+
+                    if (wideLayout) {
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement =
+                                Arrangement.spacedBy(18.dp)
+                        ) {
+
+                            StreamingCategoryCard(
+                                title = "LIVE TV",
+                                subtitle =
+                                    "Guarda i tuoi canali in diretta",
+                                symbol = "●",
+                                modifier = Modifier.weight(1f),
+                                onClick = onLiveClick
                             )
+
+                            StreamingCategoryCard(
+                                title = "FILM",
+                                subtitle =
+                                    "Esplora il catalogo dei film",
+                                symbol = "▶",
+                                modifier = Modifier.weight(1f),
+                                onClick = onMoviesClick
+                            )
+
+                            StreamingCategoryCard(
+                                title = "SERIE TV",
+                                subtitle =
+                                    "Continua con le tue serie",
+                                symbol = "▣",
+                                modifier = Modifier.weight(1f),
+                                onClick = onSeriesClick
+                            )
+                        }
+
+                    } else {
+
+                        Column(
+                            verticalArrangement =
+                                Arrangement.spacedBy(14.dp)
+                        ) {
+
+                            StreamingCategoryCard(
+                                title = "LIVE TV",
+                                subtitle =
+                                    "Guarda i tuoi canali in diretta",
+                                symbol = "●",
+                                modifier =
+                                    Modifier.fillMaxWidth(),
+                                onClick = onLiveClick
+                            )
+
+                            StreamingCategoryCard(
+                                title = "FILM",
+                                subtitle =
+                                    "Esplora il catalogo dei film",
+                                symbol = "▶",
+                                modifier =
+                                    Modifier.fillMaxWidth(),
+                                onClick = onMoviesClick
+                            )
+
+                            StreamingCategoryCard(
+                                title = "SERIE TV",
+                                subtitle =
+                                    "Continua con le tue serie",
+                                symbol = "▣",
+                                modifier =
+                                    Modifier.fillMaxWidth(),
+                                onClick = onSeriesClick
+                            )
+                        }
+                    }
+
+                    Spacer(
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    AccountInfoCard(
+                        vm = vm
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(22.dp)
                     )
                 }
             }
@@ -469,90 +459,243 @@ private fun HomeMainScreen(
                         .fillMaxSize()
                         .background(
                             Color.Black.copy(
-                                alpha = 0.55f
+                                alpha = 0.68f
                             )
                         ),
-
-                    contentAlignment =
-                        Alignment.Center
+                    contentAlignment = Alignment.Center
                 ) {
 
-                    CircularProgressIndicator(
-                        color = accentColor
-                    )
+                    Column(
+                        horizontalAlignment =
+                            Alignment.CenterHorizontally
+                    ) {
+
+                        CircularProgressIndicator(
+                            color = HomeBlue
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(14.dp)
+                        )
+
+                        Text(
+                            text = "Aggiornamento catalogo...",
+                            color = Color.White,
+                            fontSize = 14.sp
+                        )
+                    }
                 }
             }
 
             vm.error?.let { error ->
 
-                Text(
-                    text = error,
-                    color = Color.Red,
-
+                Surface(
                     modifier = Modifier
-                        .align(
-                            Alignment.BottomCenter
-                        )
+                        .align(Alignment.BottomCenter)
                         .padding(20.dp),
+                    color =
+                        MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
 
-                    textAlign =
-                        TextAlign.Center
-                )
+                    Text(
+                        text = error,
+                        color =
+                            MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(
+                            horizontal = 18.dp,
+                            vertical = 12.dp
+                        ),
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun HomeCategoryCard(
+private fun StreamingCategoryCard(
     title: String,
+    subtitle: String,
+    symbol: String,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-
-    val accentColor =
-        Color(0xFFCAEA00)
-
     Card(
         modifier = modifier
-            .height(170.dp)
+            .height(190.dp)
             .clickable {
                 onClick()
             },
-
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    Color(0xFF151515)
-            )
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = HomeSurface
+        ),
+        border = BorderStroke(
+            1.dp,
+            Color(0xFF1E2938)
+        )
     ) {
 
         Box(
-            modifier =
-                Modifier.fillMaxSize(),
-
-            contentAlignment =
-                Alignment.Center
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xFF14243C),
+                            HomeSurface
+                        )
+                    )
+                )
+                .padding(22.dp)
         ) {
 
+            Column(
+                modifier =
+                    Modifier.align(Alignment.BottomStart)
+            ) {
+
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .background(
+                            HomeBlue.copy(alpha = 0.15f),
+                            RoundedCornerShape(12.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    Text(
+                        text = symbol,
+                        color = HomeBlue,
+                        fontSize = 21.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(
+                    modifier = Modifier.height(20.dp)
+                )
+
+                Text(
+                    text = title,
+                    color = Color.White,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+
+                Spacer(
+                    modifier = Modifier.height(5.dp)
+                )
+
+                Text(
+                    text = subtitle,
+                    color = HomeMuted,
+                    fontSize = 13.sp
+                )
+            }
+
             Text(
-                text = title,
-                color = Color.White,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
+                text = "›",
+                color = HomeBlue,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Light,
+                modifier =
+                    Modifier.align(Alignment.CenterEnd)
             )
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(4.dp)
-                    .align(
-                        Alignment.BottomCenter
-                    )
-                    .background(
-                        accentColor
-                    )
+                    .height(3.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(HomeBlue)
             )
+        }
+    }
+}
+
+@Composable
+private fun AccountInfoCard(
+    vm: AppViewModel
+) {
+    val expiration =
+        vm.auth?.user_info?.exp_date
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = HomeSurface.copy(alpha = 0.8f),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(
+            1.dp,
+            Color(0x222B8CFF)
+        )
+    ) {
+
+        Row(
+            modifier = Modifier.padding(
+                horizontal = 20.dp,
+                vertical = 14.dp
+            ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = "ACCOUNT",
+                    color = HomeMuted,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(
+                    modifier = Modifier.height(3.dp)
+                )
+
+                Text(
+                    text =
+                        vm.auth?.user_info?.username
+                            ?: vm.credentials?.username
+                            ?: "",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            if (!expiration.isNullOrBlank()) {
+
+                Column(
+                    horizontalAlignment = Alignment.End
+                ) {
+
+                    Text(
+                        text = "SCADENZA",
+                        color = HomeMuted,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(3.dp)
+                    )
+
+                    Text(
+                        text =
+                            formatExpirationDate(
+                                expiration
+                            ),
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
         }
     }
 }
@@ -583,7 +726,6 @@ private fun formatExpirationDate(
         )
 
     } catch (_: Exception) {
-
         value
     }
 }
