@@ -53,24 +53,27 @@ fun HomeScreen(
         when {
 
             initialMovie != null -> {
-                currentSection = HomeSection.MOVIES
+                currentSection =
+                    HomeSection.MOVIES
             }
 
             initialSeries != null -> {
-                currentSection = HomeSection.SERIES
+                currentSection =
+                    HomeSection.SERIES
             }
 
             initialLive != null -> {
-                currentSection = HomeSection.LIVE
+                currentSection =
+                    HomeSection.LIVE
             }
         }
     }
 
     when (currentSection) {
 
-        // -------------------------------------------------
+        // -----------------------------------------
         // HOME
-        // -------------------------------------------------
+        // -----------------------------------------
 
         HomeSection.HOME -> {
 
@@ -78,40 +81,57 @@ fun HomeScreen(
                 vm = vm,
 
                 onLiveClick = {
-                    currentSection = HomeSection.LIVE
+                    currentSection =
+                        HomeSection.LIVE
                 },
 
                 onMoviesClick = {
-                    currentSection = HomeSection.MOVIES
+                    currentSection =
+                        HomeSection.MOVIES
                 },
 
                 onSeriesClick = {
-                    currentSection = HomeSection.SERIES
+                    currentSection =
+                        HomeSection.SERIES
                 }
             )
         }
 
-        // -------------------------------------------------
+        // -----------------------------------------
         // LIVE TV
-        // -------------------------------------------------
+        // -----------------------------------------
 
         HomeSection.LIVE -> {
 
             LiveContentScreen(
-                categories = vm.liveCategories,
-                streams = vm.live,
+                categories =
+                    vm.liveCategories,
+
+                streams =
+                    vm.live,
+
+                // QUI RIPRISTINIAMO LA CATEGORIA
+                initialCategoryId =
+                    initialLive?.category_id,
+
+                onInitialCategoryConsumed = {
+                    onInitialLiveConsumed()
+                },
 
                 onBack = {
-                    currentSection = HomeSection.HOME
+                    currentSection =
+                        HomeSection.HOME
                 },
 
                 onPlay = { playData ->
 
-                    val parts = playData.split(":")
+                    val parts =
+                        playData.split(":")
 
                     if (parts.size >= 2) {
 
-                        val id = parts[1].toIntOrNull()
+                        val id =
+                            parts[1].toIntOrNull()
 
                         if (id != null) {
 
@@ -127,8 +147,6 @@ fun HomeScreen(
                                     id = id
                                 )?.let { url ->
 
-                                    onInitialLiveConsumed()
-
                                     onLivePlay(
                                         url,
                                         liveStream
@@ -141,29 +159,39 @@ fun HomeScreen(
             )
         }
 
-        // -------------------------------------------------
+        // -----------------------------------------
         // FILM
-        // -------------------------------------------------
+        // -----------------------------------------
 
         HomeSection.MOVIES -> {
 
             MovieContentScreen(
-                categories = vm.movieCategories,
-                movies = vm.movies,
-                initialMovie = initialMovie,
-                onInitialMovieConsumed = onInitialMovieConsumed,
+                categories =
+                    vm.movieCategories,
+
+                movies =
+                    vm.movies,
+
+                initialMovie =
+                    initialMovie,
+
+                onInitialMovieConsumed =
+                    onInitialMovieConsumed,
 
                 onBack = {
-                    currentSection = HomeSection.HOME
+                    currentSection =
+                        HomeSection.HOME
                 },
 
                 onPlay = { playData ->
 
-                    val parts = playData.split(":")
+                    val parts =
+                        playData.split(":")
 
                     if (parts.size >= 2) {
 
-                        val id = parts[1].toIntOrNull()
+                        val id =
+                            parts[1].toIntOrNull()
 
                         if (id != null) {
 
@@ -196,21 +224,30 @@ fun HomeScreen(
             )
         }
 
-        // -------------------------------------------------
+        // -----------------------------------------
         // SERIE TV
-        // -------------------------------------------------
+        // -----------------------------------------
 
         HomeSection.SERIES -> {
 
             SeriesContentScreen(
                 title = "SERIE TV",
-                categories = vm.seriesCategories,
-                series = vm.series,
+
+                categories =
+                    vm.seriesCategories,
+
+                series =
+                    vm.series,
+
                 vm = vm,
 
-                onPlay = onPlay,
+                onPlay =
+                    onPlay,
 
-                onSeriesPlay = { url, series, season ->
+                onSeriesPlay = {
+                        url,
+                        series,
+                        season ->
 
                     onSeriesPlay(
                         url,
@@ -219,14 +256,18 @@ fun HomeScreen(
                     )
                 },
 
-                initialSeries = initialSeries,
-                initialSeason = initialSeason,
+                initialSeries =
+                    initialSeries,
+
+                initialSeason =
+                    initialSeason,
 
                 onInitialSeriesConsumed =
                     onInitialSeriesConsumed,
 
                 onBack = {
-                    currentSection = HomeSection.HOME
+                    currentSection =
+                        HomeSection.HOME
                 }
             )
         }
@@ -241,12 +282,18 @@ private fun HomeMainScreen(
     onSeriesClick: () -> Unit
 ) {
 
-    val accentColor = Color(0xFFCAEA00)
-    val backgroundColor = Color(0xFF090909)
-    val surfaceColor = Color(0xFF151515)
+    val accentColor =
+        Color(0xFFCAEA00)
+
+    val backgroundColor =
+        Color(0xFF090909)
+
+    val surfaceColor =
+        Color(0xFF151515)
 
     Scaffold(
-        containerColor = backgroundColor,
+        containerColor =
+            backgroundColor,
 
         topBar = {
 
@@ -254,18 +301,26 @@ private fun HomeMainScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(64.dp)
-                    .background(surfaceColor)
-                    .padding(horizontal = 20.dp),
+                    .background(
+                        surfaceColor
+                    )
+                    .padding(
+                        horizontal = 20.dp
+                    ),
 
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
                 Text(
                     text = "XTREAM PLAYER",
+
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
+
+                    modifier =
+                        Modifier.weight(1f)
                 )
 
                 TextButton(
@@ -300,13 +355,17 @@ private fun HomeMainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(backgroundColor)
+                .background(
+                    backgroundColor
+                )
         ) {
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 30.dp),
+                    .padding(
+                        horizontal = 30.dp
+                    ),
 
                 horizontalAlignment =
                     Alignment.CenterHorizontally
@@ -355,20 +414,29 @@ private fun HomeMainScreen(
 
                     HomeCategoryCard(
                         title = "LIVE TV",
-                        modifier = Modifier.width(210.dp),
-                        onClick = onLiveClick
+                        modifier =
+                            Modifier.width(210.dp),
+
+                        onClick =
+                            onLiveClick
                     )
 
                     HomeCategoryCard(
                         title = "FILM",
-                        modifier = Modifier.width(210.dp),
-                        onClick = onMoviesClick
+                        modifier =
+                            Modifier.width(210.dp),
+
+                        onClick =
+                            onMoviesClick
                     )
 
                     HomeCategoryCard(
                         title = "SERIE TV",
-                        modifier = Modifier.width(210.dp),
-                        onClick = onSeriesClick
+                        modifier =
+                            Modifier.width(210.dp),
+
+                        onClick =
+                            onSeriesClick
                     )
                 }
 
@@ -388,9 +456,10 @@ private fun HomeMainScreen(
                         color = Color.Gray,
                         fontSize = 13.sp,
 
-                        modifier = Modifier.padding(
-                            bottom = 18.dp
-                        )
+                        modifier =
+                            Modifier.padding(
+                                bottom = 18.dp
+                            )
                     )
                 }
             }
@@ -423,10 +492,13 @@ private fun HomeMainScreen(
                     color = Color.Red,
 
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
+                        .align(
+                            Alignment.BottomCenter
+                        )
                         .padding(20.dp),
 
-                    textAlign = TextAlign.Center
+                    textAlign =
+                        TextAlign.Center
                 )
             }
         }
@@ -440,7 +512,8 @@ private fun HomeCategoryCard(
     onClick: () -> Unit
 ) {
 
-    val accentColor = Color(0xFFCAEA00)
+    val accentColor =
+        Color(0xFFCAEA00)
 
     Card(
         modifier = modifier
@@ -449,14 +522,19 @@ private fun HomeCategoryCard(
                 onClick()
             },
 
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF151515)
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color(0xFF151515)
+            )
     ) {
 
         Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier.fillMaxSize(),
+
+            contentAlignment =
+                Alignment.Center
         ) {
 
             Text(
@@ -470,8 +548,12 @@ private fun HomeCategoryCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(4.dp)
-                    .align(Alignment.BottomCenter)
-                    .background(accentColor)
+                    .align(
+                        Alignment.BottomCenter
+                    )
+                    .background(
+                        accentColor
+                    )
             )
         }
     }
