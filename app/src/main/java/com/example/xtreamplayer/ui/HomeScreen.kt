@@ -2,10 +2,7 @@ package com.example.xtreamplayer.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,12 +18,9 @@ import com.example.xtreamplayer.viewmodel.AppViewModel
 private enum class HomeSection {
     HOME,
     LIVE,
-    LIVE_CONTENT,
     MOVIES,
-    MOVIE_CONTENT,
-    MOVIE_DETAILS,
     SERIES,
-    SERIES_CONTENT
+    MOVIE_DETAILS
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,10 +31,6 @@ fun HomeScreen(
 ) {
     var currentSection by remember {
         mutableStateOf(HomeSection.HOME)
-    }
-
-    var selectedCategoryId by remember {
-        mutableStateOf<String?>(null)
     }
 
     var selectedMovie by remember {
@@ -65,30 +55,10 @@ fun HomeScreen(
         }
 
         HomeSection.LIVE -> {
-            CategoryScreen(
-                title = "LIVE TV",
-                categories = vm.liveCategories,
-                onCategoryClick = { categoryId ->
-                    selectedCategoryId = categoryId
-                    currentSection =
-                        HomeSection.LIVE_CONTENT
-                },
-                onBack = {
-                    currentSection = HomeSection.HOME
-                }
-            )
-        }
-
-        HomeSection.LIVE_CONTENT -> {
-            val categoryId = selectedCategoryId
-
-            val channels = vm.live.filter {
-                it.category_id == categoryId
-            }
-
             LiveContentScreen(
                 title = "LIVE TV",
-                streams = channels,
+                categories = vm.liveCategories,
+                streams = vm.live,
                 onPlay = { channel ->
                     channel.stream_id?.let { id ->
                         vm.streamUrl(
@@ -98,43 +68,22 @@ fun HomeScreen(
                     }
                 },
                 onBack = {
-                    currentSection = HomeSection.LIVE
-                }
-            )
-        }
-
-        HomeSection.MOVIES -> {
-            CategoryScreen(
-                title = "FILM",
-                categories = vm.movieCategories,
-                onCategoryClick = { categoryId ->
-                    selectedCategoryId = categoryId
-                    currentSection =
-                        HomeSection.MOVIE_CONTENT
-                },
-                onBack = {
                     currentSection = HomeSection.HOME
                 }
             )
         }
 
-        HomeSection.MOVIE_CONTENT -> {
-            val categoryId = selectedCategoryId
-
-            val movies = vm.movies.filter {
-                it.category_id == categoryId
-            }
-
+        HomeSection.MOVIES -> {
             MovieContentScreen(
                 title = "FILM",
-                movies = movies,
+                categories = vm.movieCategories,
+                movies = vm.movies,
                 onMovieClick = { movie ->
                     selectedMovie = movie
-                    currentSection =
-                        HomeSection.MOVIE_DETAILS
+                    currentSection = HomeSection.MOVIE_DETAILS
                 },
                 onBack = {
-                    currentSection = HomeSection.MOVIES
+                    currentSection = HomeSection.HOME
                 }
             )
         }
@@ -145,56 +94,31 @@ fun HomeScreen(
             if (movie != null) {
                 MovieDetailsScreen(
                     movie = movie,
-
                     onPlay = {
                         movie.stream_id?.let { id ->
                             vm.streamUrl(
                                 type = "movie",
                                 id = id,
-                                extension =
-                                    movie.container_extension
+                                extension = movie.container_extension
                             )?.let(onPlay)
                         }
                     },
-
                     onBack = {
-                        currentSection =
-                            HomeSection.MOVIE_CONTENT
+                        currentSection = HomeSection.MOVIES
                     }
                 )
             }
         }
 
         HomeSection.SERIES -> {
-            CategoryScreen(
-                title = "SERIE TV",
-                categories = vm.seriesCategories,
-                onCategoryClick = { categoryId ->
-                    selectedCategoryId = categoryId
-                    currentSection =
-                        HomeSection.SERIES_CONTENT
-                },
-                onBack = {
-                    currentSection = HomeSection.HOME
-                }
-            )
-        }
-
-        HomeSection.SERIES_CONTENT -> {
-            val categoryId = selectedCategoryId
-
-            val series = vm.series.filter {
-                it.category_id == categoryId
-            }
-
             SeriesContentScreen(
                 title = "SERIE TV",
-                series = series,
+                categories = vm.seriesCategories,
+                series = vm.series,
                 vm = vm,
                 onPlay = onPlay,
                 onBack = {
-                    currentSection =
-                        HomeSection.SERIES
+                    currentSection = HomeSection.HOME
                 }
             )
         }
@@ -250,17 +174,13 @@ private fun HomeMainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(pad)
-                .background(
-                    Color(0xFF090909)
-                )
+                .background(Color(0xFF090909))
         ) {
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(
-                        horizontal = 24.dp
-                    )
+                    .padding(horizontal = 24.dp)
             ) {
 
                 Spacer(
@@ -269,24 +189,18 @@ private fun HomeMainScreen(
 
                 Text(
                     text = "Benvenuto ${account?.username ?: ""}",
-                    style = MaterialTheme
-                        .typography
-                        .headlineMedium,
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
 
                 Spacer(
-                    modifier = Modifier.height(45.dp)
+                    modifier = Modifier.weight(1f)
                 )
 
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(
-                            rememberScrollState()
-                        ),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(20.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
 
                     HomeCategoryCard(
@@ -295,10 +209,18 @@ private fun HomeMainScreen(
                         onClick = onLiveClick
                     )
 
+                    Spacer(
+                        modifier = Modifier.width(20.dp)
+                    )
+
                     HomeCategoryCard(
                         title = "FILM",
                         subtitle = "Film e cinema",
                         onClick = onMoviesClick
+                    )
+
+                    Spacer(
+                        modifier = Modifier.width(20.dp)
                     )
 
                     HomeCategoryCard(
@@ -318,9 +240,7 @@ private fun HomeMainScreen(
                         text = "SCADENZA ABBONAMENTO",
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme
-                            .colorScheme
-                            .onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp
                     )
 
@@ -329,16 +249,12 @@ private fun HomeMainScreen(
                     )
 
                     Text(
-                        text = formatExpirationDate(
-                            expiration
-                        ),
+                        text = formatExpirationDate(expiration),
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme
-                            .colorScheme
-                            .primary
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
 
@@ -351,25 +267,20 @@ private fun HomeMainScreen(
 
                 Box(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment =
-                        Alignment.Center
+                    contentAlignment = Alignment.Center
                 ) {
 
                     Column(
-                        horizontalAlignment =
-                            Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
 
                         CircularProgressIndicator()
 
                         Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
+                            modifier = Modifier.height(12.dp)
                         )
 
-                        Text(
-                            "Aggiornamento catalogo..."
-                        )
+                        Text("Aggiornamento catalogo...")
                     }
                 }
             }
@@ -390,7 +301,6 @@ private fun HomeCategoryCard(
             .clickable {
                 onClick()
             },
-        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFF151515)
         ),
@@ -403,17 +313,14 @@ private fun HomeCategoryCard(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(24.dp),
-            verticalArrangement =
-                Arrangement.Center
+            verticalArrangement = Arrangement.Center
         ) {
 
             Text(
                 text = title,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme
-                    .colorScheme
-                    .primary
+                color = MaterialTheme.colorScheme.primary
             )
 
             Spacer(
@@ -423,9 +330,7 @@ private fun HomeCategoryCard(
             Text(
                 text = subtitle,
                 fontSize = 15.sp,
-                color = MaterialTheme
-                    .colorScheme
-                    .onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -438,16 +343,13 @@ private fun formatExpirationDate(
 
         val timestamp = expiration.toLong()
 
-        val date =
-            java.text.SimpleDateFormat(
-                "dd/MM/yyyy",
-                java.util.Locale.getDefault()
-            )
+        val date = java.text.SimpleDateFormat(
+            "dd/MM/yyyy",
+            java.util.Locale.getDefault()
+        )
 
         date.format(
-            java.util.Date(
-                timestamp * 1000
-            )
+            java.util.Date(timestamp * 1000)
         )
 
     } catch (e: Exception) {
