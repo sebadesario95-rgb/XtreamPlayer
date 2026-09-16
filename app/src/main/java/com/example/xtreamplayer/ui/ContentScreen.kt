@@ -1,5 +1,6 @@
 package com.example.xtreamplayer.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -419,6 +420,7 @@ private fun CategorySidebar(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SidebarItem(
     name: String,
@@ -465,6 +467,7 @@ private fun SidebarItem(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LiveCard(
     stream: LiveStream,
@@ -527,6 +530,7 @@ private fun LiveCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MovieCard(
     movie: VodStream,
