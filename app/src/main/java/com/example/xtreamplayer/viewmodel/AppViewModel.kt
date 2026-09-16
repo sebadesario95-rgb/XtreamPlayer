@@ -9,10 +9,17 @@ import androidx.lifecycle.viewModelScope
 import com.example.xtreamplayer.data.*
 import com.example.xtreamplayer.player.XtreamStreamUrlBuilder
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private val store = CredentialStore(app)
+
+    private val prefs =
+        app.getSharedPreferences(
+            "xtream_player_preferences",
+            Application.MODE_PRIVATE
+        )
 
     var loggedIn by mutableStateOf(false)
         private set
@@ -29,10 +36,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var auth: AuthResponse? by mutableStateOf(null)
         private set
 
-    // =========================
-    // CATEGORIE
-    // =========================
-
     var liveCategories by mutableStateOf<List<Category>>(emptyList())
         private set
 
@@ -41,10 +44,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     var seriesCategories by mutableStateOf<List<Category>>(emptyList())
         private set
-
-    // =========================
-    // CONTENUTI
-    // =========================
 
     var live by mutableStateOf<List<LiveStream>>(emptyList())
         private set
@@ -55,45 +54,58 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var series by mutableStateOf<List<SeriesStream>>(emptyList())
         private set
 
-    // =========================
-    // DETTAGLI SERIE
-    // =========================
-
     var selectedSeriesInfo by mutableStateOf<SeriesInfoResponse?>(null)
         private set
 
     var loadingSeriesInfo by mutableStateOf(false)
         private set
 
+    var favoriteLiveIds by mutableStateOf<Set<Int>>(emptySet())
+        private set
+
+    var favoriteMovieIds by mutableStateOf<Set<Int>>(emptySet())
+        private set
+
+    var favoriteSeriesIds by mutableStateOf<Set<Int>>(emptySet())
+        private set
+
     init {
+        loadFavorites()
         credentials?.let {
             login(it, save = false)
         }
     }
 
-    // =========================
-    // LOGIN
-    // =========================
-
-    fun login(c: Credentials, save: Boolean = true) {
+    fun login(
+        c: Credentials,
+        save: Boolean = true
+    ) {
         viewModelScope.launch {
             loading = true
             error = null
 
             try {
-                val api = XtreamApiFactory.create(c.serverUrl)
+                val api =
+                    XtreamApiFactory.create(c.serverUrl)
 
-                val result = api.authenticate(
-                    c.username,
-                    c.password
-                )
+                val result =
+                    api.authenticate(
+                        c.username,
+                        c.password
+                    )
 
-                val status = result.user_info?.status?.lowercase()
+                val status =
+                    result.user_info?.status?.lowercase()
 
                 if (
                     result.user_info == null ||
-                    (status != null &&
-                        status !in setOf("active", "enabled"))
+                    (
+                        status != null &&
+                        status !in setOf(
+                            "active",
+                            "enabled"
+                        )
+                    )
                 ) {
                     throw IllegalStateException(
                         "Account non valido o non attivo."
@@ -109,72 +121,74 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
                 loggedIn = true
 
-                loadCatalog(api, c)
+                loadCatalog(
+                    api,
+                    c
+                )
 
             } catch (e: Exception) {
                 loggedIn = false
-                error = e.message
-                    ?: "Impossibile collegarsi al server."
+                error =
+                    e.message
+                        ?: "Impossibile collegarsi al server."
             } finally {
                 loading = false
             }
         }
     }
 
-    // =========================
-    // CARICAMENTO CATALOGO
-    // =========================
-
     private suspend fun loadCatalog(
         api: XtreamApiService,
         c: Credentials
     ) {
-        liveCategories = runCatching {
-            api.liveCategories(
-                c.username,
-                c.password
-            )
-        }.getOrDefault(emptyList())
+        liveCategories =
+            runCatching {
+                api.liveCategories(
+                    c.username,
+                    c.password
+                )
+            }.getOrDefault(emptyList())
 
-        movieCategories = runCatching {
-            api.vodCategories(
-                c.username,
-                c.password
-            )
-        }.getOrDefault(emptyList())
+        movieCategories =
+            runCatching {
+                api.vodCategories(
+                    c.username,
+                    c.password
+                )
+            }.getOrDefault(emptyList())
 
-        seriesCategories = runCatching {
-            api.seriesCategories(
-                c.username,
-                c.password
-            )
-        }.getOrDefault(emptyList())
+        seriesCategories =
+            runCatching {
+                api.seriesCategories(
+                    c.username,
+                    c.password
+                )
+            }.getOrDefault(emptyList())
 
-        live = runCatching {
-            api.liveStreams(
-                c.username,
-                c.password
-            )
-        }.getOrDefault(emptyList())
+        live =
+            runCatching {
+                api.liveStreams(
+                    c.username,
+                    c.password
+                )
+            }.getOrDefault(emptyList())
 
-        movies = runCatching {
-            api.vodStreams(
-                c.username,
-                c.password
-            )
-        }.getOrDefault(emptyList())
+        movies =
+            runCatching {
+                api.vodStreams(
+                    c.username,
+                    c.password
+                )
+            }.getOrDefault(emptyList())
 
-        series = runCatching {
-            api.series(
-                c.username,
-                c.password
-            )
-        }.getOrDefault(emptyList())
+        series =
+            runCatching {
+                api.series(
+                    c.username,
+                    c.password
+                )
+            }.getOrDefault(emptyList())
     }
-
-    // =========================
-    // UPDATE
-    // =========================
 
     fun updateCatalog() {
         val c = credentials ?: return
@@ -184,26 +198,27 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             error = null
 
             try {
-                val api = XtreamApiFactory.create(
-                    c.serverUrl
+                val api =
+                    XtreamApiFactory.create(c.serverUrl)
+
+                loadCatalog(
+                    api,
+                    c
                 )
 
-                loadCatalog(api, c)
-
             } catch (e: Exception) {
-                error = e.message
-                    ?: "Errore durante l'aggiornamento."
+                error =
+                    e.message
+                        ?: "Errore durante l'aggiornamento."
             } finally {
                 loading = false
             }
         }
     }
 
-    // =========================
-    // DETTAGLI SERIE
-    // =========================
-
-    fun loadSeriesInfo(seriesId: Int) {
+    fun loadSeriesInfo(
+        seriesId: Int
+    ) {
         val c = credentials ?: return
 
         viewModelScope.launch {
@@ -212,19 +227,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             selectedSeriesInfo = null
 
             try {
-                val api = XtreamApiFactory.create(
-                    c.serverUrl
-                )
+                val api =
+                    XtreamApiFactory.create(c.serverUrl)
 
-                selectedSeriesInfo = api.seriesInfo(
-                    username = c.username,
-                    password = c.password,
-                    seriesId = seriesId
-                )
+                selectedSeriesInfo =
+                    api.seriesInfo(
+                        username = c.username,
+                        password = c.password,
+                        seriesId = seriesId
+                    )
 
             } catch (e: Exception) {
-                error = e.message
-                    ?: "Impossibile caricare i dettagli della serie."
+                error =
+                    e.message
+                        ?: "Impossibile caricare i dettagli della serie."
             } finally {
                 loadingSeriesInfo = false
             }
@@ -236,16 +252,148 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         loadingSeriesInfo = false
     }
 
-    // =========================
-    // LOGOUT
-    // =========================
+    fun toggleFavoriteLive(
+        id: Int
+    ) {
+        favoriteLiveIds =
+            if (id in favoriteLiveIds) {
+                favoriteLiveIds - id
+            } else {
+                favoriteLiveIds + id
+            }
+
+        saveFavorites()
+    }
+
+    fun toggleFavoriteMovie(
+        id: Int
+    ) {
+        favoriteMovieIds =
+            if (id in favoriteMovieIds) {
+                favoriteMovieIds - id
+            } else {
+                favoriteMovieIds + id
+            }
+
+        saveFavorites()
+    }
+
+    fun toggleFavoriteSeries(
+        id: Int
+    ) {
+        favoriteSeriesIds =
+            if (id in favoriteSeriesIds) {
+                favoriteSeriesIds - id
+            } else {
+                favoriteSeriesIds + id
+            }
+
+        saveFavorites()
+    }
+
+    fun isFavoriteLive(
+        id: Int
+    ): Boolean {
+        return id in favoriteLiveIds
+    }
+
+    fun isFavoriteMovie(
+        id: Int
+    ): Boolean {
+        return id in favoriteMovieIds
+    }
+
+    fun isFavoriteSeries(
+        id: Int
+    ): Boolean {
+        return id in favoriteSeriesIds
+    }
+
+    private fun loadFavorites() {
+        favoriteLiveIds =
+            loadIds(
+                "favorite_live"
+            )
+
+        favoriteMovieIds =
+            loadIds(
+                "favorite_movies"
+            )
+
+        favoriteSeriesIds =
+            loadIds(
+                "favorite_series"
+            )
+    }
+
+    private fun saveFavorites() {
+        saveIds(
+            "favorite_live",
+            favoriteLiveIds
+        )
+
+        saveIds(
+            "favorite_movies",
+            favoriteMovieIds
+        )
+
+        saveIds(
+            "favorite_series",
+            favoriteSeriesIds
+        )
+    }
+
+    private fun loadIds(
+        key: String
+    ): Set<Int> {
+        val raw =
+            prefs.getString(
+                key,
+                null
+            ) ?: return emptySet()
+
+        return try {
+            val array =
+                JSONArray(raw)
+
+            buildSet {
+                for (i in 0 until array.length()) {
+                    add(
+                        array.getInt(i)
+                    )
+                }
+            }
+        } catch (
+            _: Exception
+        ) {
+            emptySet()
+        }
+    }
+
+    private fun saveIds(
+        key: String,
+        ids: Set<Int>
+    ) {
+        val array =
+            JSONArray()
+
+        ids.forEach {
+            array.put(it)
+        }
+
+        prefs.edit()
+            .putString(
+                key,
+                array.toString()
+            )
+            .apply()
+    }
 
     fun logout() {
         store.clear()
 
         credentials = null
         auth = null
-
         loggedIn = false
 
         liveCategories = emptyList()
@@ -259,34 +407,42 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         selectedSeriesInfo = null
     }
 
-    // =========================
-    // STREAM URL
-    // =========================
-
     fun streamUrl(
         type: String,
         id: Int,
         extension: String? = null
     ): String? {
+        val c =
+            credentials
+                ?: return null
 
-        val c = credentials ?: return null
-
-        val builder = XtreamStreamUrlBuilder(
-            c,
-            auth?.server_info
-        )
-
-        return when (type) {
-            "live" -> builder.live(id, extension)
-
-            "movie" -> builder.vod(id, extension)
-
-            "series" -> builder.seriesEpisode(
-                id,
-                extension
+        val builder =
+            XtreamStreamUrlBuilder(
+                c,
+                auth?.server_info
             )
 
-            else -> null
+        return when (type) {
+            "live" ->
+                builder.live(
+                    id,
+                    extension
+                )
+
+            "movie" ->
+                builder.vod(
+                    id,
+                    extension
+                )
+
+            "series" ->
+                builder.seriesEpisode(
+                    id,
+                    extension
+                )
+
+            else ->
+                null
         }
     }
 }
