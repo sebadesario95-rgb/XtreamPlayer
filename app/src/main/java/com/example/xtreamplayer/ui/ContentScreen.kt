@@ -92,11 +92,22 @@ fun LiveContentScreen(
 fun MovieContentScreen(
     categories: List<Category>,
     movies: List<VodStream>,
+    initialMovie: VodStream? = null,
+    onInitialMovieConsumed: () -> Unit = {},
     onBack: () -> Unit,
     onPlay: (String) -> Unit
-) {
+){
     var selectedCategoryId by remember { mutableStateOf<String?>(null) }
-    var selectedMovie by remember { mutableStateOf<VodStream?>(null) }
+    var selectedMovie by remember {
+    mutableStateOf<VodStream?>(initialMovie)
+}
+
+LaunchedEffect(initialMovie) {
+    if (initialMovie != null) {
+        selectedMovie = initialMovie
+        onInitialMovieConsumed()
+    }
+}
 
     if (selectedMovie != null) {
         MovieDetailsScreen(
