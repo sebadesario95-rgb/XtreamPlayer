@@ -3,28 +3,11 @@ package com.example.xtreamplayer.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,11 +17,91 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.xtreamplayer.viewmodel.AppViewModel
 
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+private enum class HomeSection {
+    HOME,
+    LIVE,
+    MOVIES,
+    SERIES
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     vm: AppViewModel,
     onPlay: (String) -> Unit
+) {
+    var currentSection by remember {
+        mutableStateOf(HomeSection.HOME)
+    }
+
+    when (currentSection) {
+
+        HomeSection.HOME -> {
+            HomeMainScreen(
+                vm = vm,
+                onLiveClick = {
+                    currentSection = HomeSection.LIVE
+                },
+                onMoviesClick = {
+                    currentSection = HomeSection.MOVIES
+                },
+                onSeriesClick = {
+                    currentSection = HomeSection.SERIES
+                }
+            )
+        }
+
+        HomeSection.LIVE -> {
+            CategoryScreen(
+                title = "LIVE TV",
+                categories = vm.liveCategories,
+                onCategoryClick = { categoryId ->
+                    // Prossimo passaggio:
+                    // apertura dei canali della categoria
+                },
+                onBack = {
+                    currentSection = HomeSection.HOME
+                }
+            )
+        }
+
+        HomeSection.MOVIES -> {
+            CategoryScreen(
+                title = "FILM",
+                categories = vm.movieCategories,
+                onCategoryClick = { categoryId ->
+                    // Prossimo passaggio:
+                    // apertura dei film della categoria
+                },
+                onBack = {
+                    currentSection = HomeSection.HOME
+                }
+            )
+        }
+
+        HomeSection.SERIES -> {
+            CategoryScreen(
+                title = "SERIE TV",
+                categories = vm.seriesCategories,
+                onCategoryClick = { categoryId ->
+                    // Prossimo passaggio:
+                    // apertura delle serie della categoria
+                },
+                onBack = {
+                    currentSection = HomeSection.HOME
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeMainScreen(
+    vm: AppViewModel,
+    onLiveClick: () -> Unit,
+    onMoviesClick: () -> Unit,
+    onSeriesClick: () -> Unit
 ) {
     val account = vm.auth?.user_info
 
@@ -116,25 +179,19 @@ fun HomeScreen(
                     HomeCategoryCard(
                         title = "LIVE TV",
                         subtitle = "Canali televisivi",
-                        onClick = {
-                            // Verrà collegato alla schermata LIVE
-                        }
+                        onClick = onLiveClick
                     )
 
                     HomeCategoryCard(
                         title = "FILM",
                         subtitle = "Film e cinema",
-                        onClick = {
-                            // Verrà collegato alla schermata FILM
-                        }
+                        onClick = onMoviesClick
                     )
 
                     HomeCategoryCard(
                         title = "SERIE TV",
                         subtitle = "Serie e stagioni",
-                        onClick = {
-                            // Verrà collegato alla schermata SERIE
-                        }
+                        onClick = onSeriesClick
                     )
                 }
 
@@ -172,10 +229,12 @@ fun HomeScreen(
             }
 
             if (vm.loading) {
+
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
+
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -202,7 +261,6 @@ private fun HomeCategoryCard(
     subtitle: String,
     onClick: () -> Unit
 ) {
-
     Card(
         modifier = Modifier
             .width(280.dp)
