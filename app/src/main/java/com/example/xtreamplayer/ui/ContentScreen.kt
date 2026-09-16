@@ -13,10 +13,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -79,7 +83,7 @@ fun LiveContentScreen(
 fun MovieContentScreen(
     title: String,
     movies: List<VodStream>,
-    onPlay: (VodStream) -> Unit,
+    onMovieClick: (VodStream) -> Unit,
     onBack: () -> Unit
 ) {
     ContentHeader(
@@ -106,12 +110,154 @@ fun MovieContentScreen(
                     MovieCard(
                         movie = movie,
                         onClick = {
-                            onPlay(movie)
+                            onMovieClick(movie)
                         }
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+fun MovieDetailsScreen(
+    movie: VodStream,
+    onPlay: () -> Unit,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF090909))
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp)
+    ) {
+        TextButton(
+            onClick = onBack
+        ) {
+            Text("← INDIETRO")
+        }
+
+        Spacer(
+            modifier = Modifier.height(20.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(28.dp)
+        ) {
+
+            if (!movie.stream_icon.isNullOrBlank()) {
+                AsyncImage(
+                    model = movie.stream_icon,
+                    contentDescription = movie.name,
+                    modifier = Modifier
+                        .width(280.dp)
+                        .height(410.dp)
+                        .clip(
+                            RoundedCornerShape(14.dp)
+                        ),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .width(280.dp)
+                        .height(410.dp)
+                        .clip(
+                            RoundedCornerShape(14.dp)
+                        )
+                        .background(Color(0xFF202020)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "NESSUNA IMMAGINE",
+                        color = MaterialTheme
+                            .colorScheme
+                            .onSurfaceVariant
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+            ) {
+
+                Text(
+                    text = movie.name ?: "Film",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+
+                Spacer(
+                    modifier = Modifier.height(14.dp)
+                )
+
+                if (!movie.rating.isNullOrBlank()) {
+                    Text(
+                        text = "★ ${movie.rating}",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme
+                            .colorScheme
+                            .primary
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(18.dp)
+                    )
+                }
+
+                Text(
+                    text = "FILM",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme
+                        .colorScheme
+                        .onSurfaceVariant
+                )
+
+                Spacer(
+                    modifier = Modifier.height(25.dp)
+                )
+
+                Button(
+                    onClick = onPlay
+                ) {
+                    Text(
+                        text = "▶  RIPRODUCI",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        Spacer(
+            modifier = Modifier.height(35.dp)
+        )
+
+        Text(
+            text = "TRAMA",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(
+            modifier = Modifier.height(12.dp)
+        )
+
+        Text(
+            text = "Informazioni e trama del film disponibili dal catalogo.",
+            fontSize = 15.sp,
+            color = MaterialTheme
+                .colorScheme
+                .onSurfaceVariant
+        )
+
+        Spacer(
+            modifier = Modifier.height(40.dp)
+        )
     }
 }
 
