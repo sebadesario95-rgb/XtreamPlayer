@@ -104,17 +104,16 @@ fun HomeScreen(
         HomeSection.LIVE -> {
 
             LiveContentScreen(
-                categories =
-                    vm.liveCategories,
-
-                streams =
-                    vm.live,
+    title = "LIVE TV",
+    categories = vm.liveCategories,
+    streams = vm.live,
+    vm = vm,
 
                 // QUI RIPRISTINIAMO LA CATEGORIA
                 initialCategoryId =
                     initialLive?.category_id,
 
-                onInitialCategoryConsumed = {
+                onInitialLiveConsumed = {
                     onInitialLiveConsumed()
                 },
 
@@ -166,11 +165,10 @@ fun HomeScreen(
         HomeSection.MOVIES -> {
 
             MovieContentScreen(
-                categories =
-                    vm.movieCategories,
-
-                movies =
-                    vm.movies,
+    title = "FILM",
+    categories = vm.movieCategories,
+    movies = vm.movies,
+    vm = vm,
 
                 initialMovie =
                     initialMovie,
