@@ -96,102 +96,64 @@ fun HomeScreen(
         }
 
         HomeSection.LIVE -> {
-            LiveContentScreen(
-                title = "LIVE TV",
-                categories = vm.liveCategories,
-                streams = vm.live,
-                vm = vm,
-                initialCategoryId = initialLive?.category_id,
-                onInitialLiveConsumed = {
-                    onInitialLiveConsumed()
-                },
-                onBack = {
-                    currentSection = HomeSection.HOME
-                },
-                onPlay = { playData ->
+    LiveContentScreen(
+        title = "LIVE TV",
+        categories = vm.liveCategories,
+        streams = vm.live,
+        vm = vm,
 
-                    val parts = playData.split(":")
+        onPlay = { url ->
+            onPlay(url)
+        },
 
-                    if (parts.size >= 2) {
-
-                        val id = parts[1].toIntOrNull()
-
-                        if (id != null) {
-
-                            val liveStream =
-                                vm.live.firstOrNull {
-                                    it.stream_id == id
-                                }
-
-                            if (liveStream != null) {
-
-                                vm.streamUrl(
-                                    type = "live",
-                                    id = id
-                                )?.let { url ->
-
-                                    onLivePlay(
-                                        url,
-                                        liveStream
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+        onLivePlay = { url, liveStream ->
+            onLivePlay(
+                url,
+                liveStream
             )
+        },
+
+        initialCategoryId = initialLive?.category_id,
+
+        onInitialLiveConsumed = {
+            onInitialLiveConsumed()
+        },
+
+        onBack = {
+            currentSection = HomeSection.HOME
         }
+    )
+}
 
         HomeSection.MOVIES -> {
-            MovieContentScreen(
-                title = "FILM",
-                categories = vm.movieCategories,
-                movies = vm.movies,
-                vm = vm,
-                initialMovie = initialMovie,
-                onInitialMovieConsumed =
-                    onInitialMovieConsumed,
-                onBack = {
-                    currentSection = HomeSection.HOME
-                },
-                onPlay = { playData ->
+    MovieContentScreen(
+        title = "FILM",
+        categories = vm.movieCategories,
+        movies = vm.movies,
+        vm = vm,
 
-                    val parts = playData.split(":")
+        onPlay = { url ->
+            onPlay(url)
+        },
 
-                    if (parts.size >= 2) {
-
-                        val id = parts[1].toIntOrNull()
-
-                        if (id != null) {
-
-                            val movie =
-                                vm.movies.firstOrNull {
-                                    it.stream_id == id
-                                }
-
-                            if (movie != null) {
-
-                                val extension =
-                                    parts.getOrNull(2)
-                                        ?: movie.container_extension
-
-                                vm.streamUrl(
-                                    type = "movie",
-                                    id = id,
-                                    extension = extension
-                                )?.let { url ->
-
-                                    onMoviePlay(
-                                        url,
-                                        movie
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+        onMoviePlay = { url, movie ->
+            onMoviePlay(
+                url,
+                movie
             )
+        },
+
+        initialMovie = initialMovie,
+
+        onInitialMovieConsumed = {
+            onInitialMovieConsumed()
+        },
+
+        onBack = {
+            currentSection = HomeSection.HOME
         }
+    )
+}
 
         HomeSection.SERIES -> {
             SeriesContentScreen(
