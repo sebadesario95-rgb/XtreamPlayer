@@ -37,7 +37,6 @@ var selectedCategoryId by remember {
 mutableStateOf<String?>(null)
 }
 
-```
 val filteredStreams = remember(
     streams,
     selectedCategoryId
@@ -77,7 +76,6 @@ ContentWithSidebar(
         }
     }
 }
-```
 
 }
 
@@ -93,7 +91,6 @@ var selectedCategoryId by remember {
 mutableStateOf<String?>(null)
 }
 
-```
 val filteredMovies = remember(
     movies,
     selectedCategoryId
@@ -133,7 +130,6 @@ ContentWithSidebar(
         }
     }
 }
-```
 
 }
 
@@ -167,7 +163,6 @@ Text("← INDIETRO")
 }
 ) { padding ->
 
-```
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -197,7 +192,6 @@ Text("← INDIETRO")
         }
     }
 }
-```
 
 }
 
@@ -229,7 +223,6 @@ onCategorySelected(null)
 )
 }
 
-```
     items(categories) { category ->
 
         val id = category.category_id
@@ -245,7 +238,6 @@ onCategorySelected(null)
         )
     }
 }
-```
 
 }
 
@@ -262,7 +254,6 @@ Color(0xFFCAEA00)
 Color(0xFF151515)
 }
 
-```
 val textColor =
     if (selected) {
         Color.Black
@@ -298,7 +289,6 @@ Box(
         overflow = TextOverflow.Ellipsis
     )
 }
-```
 
 }
 
@@ -320,7 +310,6 @@ containerColor = Color(0xFF151515)
 shape = RoundedCornerShape(10.dp)
 ) {
 
-```
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -350,7 +339,6 @@ shape = RoundedCornerShape(10.dp)
         )
     }
 }
-```
 
 }
 
@@ -372,7 +360,6 @@ containerColor = Color(0xFF151515)
 shape = RoundedCornerShape(10.dp)
 ) {
 
-```
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -399,7 +386,6 @@ shape = RoundedCornerShape(10.dp)
         )
     }
 }
-```
 
 }
 
@@ -430,7 +416,6 @@ Text("← INDIETRO")
 }
 ) { padding ->
 
-```
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -481,7 +466,6 @@ Text("← INDIETRO")
         }
     }
 }
-```
 
 }
 
