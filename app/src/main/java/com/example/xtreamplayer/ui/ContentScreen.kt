@@ -1,5 +1,6 @@
 package com.example.xtreamplayer.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -133,7 +134,7 @@ ContentWithSidebar(
 
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun ContentWithSidebar(
 title: String,
@@ -176,12 +177,12 @@ Text("← INDIETRO")
             onCategorySelected = onCategorySelected
         )
 
-        VerticalDivider(
-            modifier = Modifier
-                .fillMaxHeight()
-                .width(1.dp),
-            color = Color(0xFF292929)
-        )
+        Box(
+modifier = Modifier
+.fillMaxHeight()
+.width(1.dp)
+.background(Color(0xFF292929))
+)
 
         Box(
             modifier = Modifier
