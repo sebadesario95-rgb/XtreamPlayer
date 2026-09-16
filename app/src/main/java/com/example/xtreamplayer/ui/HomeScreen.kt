@@ -19,8 +19,7 @@ private enum class HomeSection {
     HOME,
     LIVE,
     MOVIES,
-    SERIES,
-    MOVIE_DETAILS
+    SERIES
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,10 +30,6 @@ fun HomeScreen(
 ) {
     var currentSection by remember {
         mutableStateOf(HomeSection.HOME)
-    }
-
-    var selectedMovie by remember {
-        mutableStateOf<VodStream?>(null)
     }
 
     when (currentSection) {
@@ -56,58 +51,54 @@ fun HomeScreen(
 
         HomeSection.LIVE -> {
             LiveContentScreen(
-                title = "LIVE TV",
                 categories = vm.liveCategories,
                 streams = vm.live,
-                onPlay = { channel ->
-                    channel.stream_id?.let { id ->
-                        vm.streamUrl(
-                            type = "live",
-                            id = id
-                        )?.let(onPlay)
-                    }
-                },
                 onBack = {
                     currentSection = HomeSection.HOME
+                },
+                onPlay = { playData ->
+
+                    val parts = playData.split(":")
+
+                    if (parts.size >= 2) {
+                        val id = parts[1].toIntOrNull()
+
+                        if (id != null) {
+                            vm.streamUrl(
+                                type = "live",
+                                id = id
+                            )?.let(onPlay)
+                        }
+                    }
                 }
             )
         }
 
         HomeSection.MOVIES -> {
             MovieContentScreen(
-                title = "FILM",
                 categories = vm.movieCategories,
                 movies = vm.movies,
-                onMovieClick = { movie ->
-                    selectedMovie = movie
-                    currentSection = HomeSection.MOVIE_DETAILS
-                },
                 onBack = {
                     currentSection = HomeSection.HOME
-                }
-            )
-        }
+                },
+                onPlay = { playData ->
 
-        HomeSection.MOVIE_DETAILS -> {
-            val movie = selectedMovie
+                    val parts = playData.split(":")
 
-            if (movie != null) {
-                MovieDetailsScreen(
-                    movie = movie,
-                    onPlay = {
-                        movie.stream_id?.let { id ->
+                    if (parts.size >= 2) {
+                        val id = parts[1].toIntOrNull()
+                        val extension = parts.getOrNull(2)
+
+                        if (id != null) {
                             vm.streamUrl(
                                 type = "movie",
                                 id = id,
-                                extension = movie.container_extension
+                                extension = extension
                             )?.let(onPlay)
                         }
-                    },
-                    onBack = {
-                        currentSection = HomeSection.MOVIES
                     }
-                )
-            }
+                }
+            )
         }
 
         HomeSection.SERIES -> {
