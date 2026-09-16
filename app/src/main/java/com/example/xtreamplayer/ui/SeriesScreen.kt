@@ -1,13 +1,14 @@
+```kotlin
 package com.example.xtreamplayer.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,7 +21,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.xtreamplayer.data.*
+import com.example.xtreamplayer.data.Category
+import com.example.xtreamplayer.data.SeriesEpisode
+import com.example.xtreamplayer.data.SeriesInfoResponse
+import com.example.xtreamplayer.data.SeriesSeason
+import com.example.xtreamplayer.data.SeriesStream
 import com.example.xtreamplayer.viewmodel.AppViewModel
 
 private val SeriesAccent = Color(0xFFCAEA00)
@@ -34,7 +39,6 @@ fun SeriesContentScreen(
     onPlay: (String) -> Unit,
     onBack: () -> Unit
 ) {
-
     var selectedCategoryId by remember {
         mutableStateOf<String?>(null)
     }
@@ -43,13 +47,14 @@ fun SeriesContentScreen(
         mutableStateOf<SeriesStream?>(null)
     }
 
-    val filteredSeries = if (selectedCategoryId == null) {
-        series
-    } else {
-        series.filter {
-            it.category_id == selectedCategoryId
+    val filteredSeries =
+        if (selectedCategoryId == null) {
+            series
+        } else {
+            series.filter {
+                it.category_id == selectedCategoryId
+            }
         }
-    }
 
     if (selectedSeries == null) {
 
@@ -135,7 +140,9 @@ fun SeriesContentScreen(
                             horizontalArrangement =
                                 Arrangement.spacedBy(18.dp),
                             contentPadding =
-                                PaddingValues(bottom = 30.dp)
+                                PaddingValues(
+                                    bottom = 30.dp
+                                )
                         ) {
 
                             items(filteredSeries) { show ->
@@ -201,10 +208,12 @@ private fun SeriesCategorySidebar(
 
         categories.forEach { category ->
 
-            val id = category.category_id ?: return@forEach
+            val id = category.category_id
+                ?: return@forEach
 
             SeriesSidebarItem(
-                name = category.category_name ?: "Categoria",
+                name = category.category_name
+                    ?: "Categoria",
                 selected = selectedCategoryId == id,
                 onClick = {
                     onCategorySelected(id)
@@ -310,7 +319,9 @@ private fun SeriesPosterCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(245.dp)
-                        .background(Color(0xFF202020)),
+                        .background(
+                            Color(0xFF202020)
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
 
@@ -350,3 +361,404 @@ private fun SeriesPosterCard(
         }
     }
 }
+
+@Composable
+private fun SeriesDetailsScreen(
+    series: SeriesStream,
+    info: SeriesInfoResponse?,
+    loading: Boolean,
+    vm: AppViewModel,
+    onPlay: (String) -> Unit,
+    onBack: () -> Unit
+) {
+
+    var selectedSeason by remember {
+        mutableStateOf<Int?>(null)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF090909))
+            .padding(24.dp)
+    ) {
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            TextButton(
+                onClick = onBack
+            ) {
+                Text("← INDIETRO")
+            }
+
+            Spacer(
+                modifier = Modifier.width(20.dp)
+            )
+
+            Text(
+                text = series.name ?: "Serie",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(
+            modifier = Modifier.height(20.dp)
+        )
+
+        if (loading) {
+
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment =
+                    Alignment.CenterHorizontally,
+                verticalArrangement =
+                    Arrangement.Center
+            ) {
+
+                CircularProgressIndicator()
+
+                Spacer(
+                    modifier = Modifier.height(12.dp)
+                )
+
+                Text("Caricamento serie...")
+            }
+
+        } else if (info == null) {
+
+            Text(
+                text = "Nessun dettaglio disponibile.",
+                color = MaterialTheme
+                    .colorScheme
+                    .onSurfaceVariant
+            )
+
+        } else {
+
+            if (!info.info?.plot.isNullOrBlank()) {
+
+                Text(
+                    text = info.info?.plot ?: "",
+                    fontSize = 14.sp,
+                    color = MaterialTheme
+                        .colorScheme
+                        .onSurfaceVariant
+                )
+
+                Spacer(
+                    modifier = Modifier.height(20.dp)
+                )
+            }
+
+            val seasons =
+                info.seasons ?: emptyList()
+
+            if (selectedSeason == null) {
+
+                Text(
+                    text = "STAGIONI",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(
+                    modifier = Modifier.height(15.dp)
+                )
+
+                if (seasons.isEmpty()) {
+
+                    val seasonNumbers =
+                        info.episodes
+                            ?.keys
+                            ?.mapNotNull {
+                                it.toIntOrNull()
+                            }
+                            ?.sorted()
+                            ?: emptyList()
+
+                    if (seasonNumbers.isEmpty()) {
+
+                        Text(
+                            text =
+                                "Nessuna stagione disponibile.",
+                            color = MaterialTheme
+                                .colorScheme
+                                .onSurfaceVariant
+                        )
+
+                    } else {
+
+                        LazyColumn(
+                            verticalArrangement =
+                                Arrangement.spacedBy(12.dp),
+                            contentPadding =
+                                PaddingValues(
+                                    bottom = 20.dp
+                                )
+                        ) {
+
+                            items(seasonNumbers) {
+                                seasonNumber ->
+
+                                SeasonNumberCard(
+                                    seasonNumber =
+                                        seasonNumber,
+                                    onClick = {
+                                        selectedSeason =
+                                            seasonNumber
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                } else {
+
+                    LazyColumn(
+                        verticalArrangement =
+                            Arrangement.spacedBy(12.dp),
+                        contentPadding =
+                            PaddingValues(
+                                bottom = 20.dp
+                            )
+                    ) {
+
+                        items(seasons) { season ->
+
+                            SeasonCard(
+                                season = season,
+                                onClick = {
+                                    selectedSeason =
+                                        season.season_number
+                                }
+                            )
+                        }
+                    }
+                }
+
+            } else {
+
+                val episodes =
+                    info.episodes
+                        ?.get(
+                            selectedSeason.toString()
+                        )
+                        ?: emptyList()
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    TextButton(
+                        onClick = {
+                            selectedSeason = null
+                        }
+                    ) {
+                        Text("← STAGIONI")
+                    }
+
+                    Text(
+                        text =
+                            "STAGIONE $selectedSeason",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(
+                    modifier = Modifier.height(15.dp)
+                )
+
+                if (episodes.isEmpty()) {
+
+                    Text(
+                        text =
+                            "Nessun episodio disponibile.",
+                        color = MaterialTheme
+                            .colorScheme
+                            .onSurfaceVariant
+                    )
+
+                } else {
+
+                    LazyColumn(
+                        verticalArrangement =
+                            Arrangement.spacedBy(12.dp),
+                        contentPadding =
+                            PaddingValues(
+                                bottom = 20.dp
+                            )
+                    ) {
+
+                        items(episodes) { episode ->
+
+                            EpisodeCard(
+                                episode = episode,
+                                onClick = {
+
+                                    val episodeId =
+                                        episode.id
+                                            ?.toIntOrNull()
+
+                                    if (episodeId != null) {
+
+                                        vm.streamUrl(
+                                            type = "series",
+                                            id = episodeId,
+                                            extension =
+                                                episode.container_extension
+                                        )?.let(onPlay)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SeasonCard(
+    season: SeriesSeason,
+    onClick: () -> Unit
+) {
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
+            .clickable {
+                onClick()
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF151515)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 5.dp
+        )
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(18.dp),
+            verticalArrangement =
+                Arrangement.Center
+        ) {
+
+            Text(
+                text = season.name
+                    ?: "Stagione ${
+                        season.season_number ?: ""
+                    }",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun SeasonNumberCard(
+    seasonNumber: Int,
+    onClick: () -> Unit
+) {
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
+            .clickable {
+                onClick()
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF151515)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 5.dp
+        )
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(18.dp),
+            verticalArrangement =
+                Arrangement.Center
+        ) {
+
+            Text(
+                text = "STAGIONE $seasonNumber",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun EpisodeCard(
+    episode: SeriesEpisode,
+    onClick: () -> Unit
+) {
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(85.dp)
+            .clickable {
+                onClick()
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF151515)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 5.dp
+        )
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    horizontal = 20.dp,
+                    vertical = 14.dp
+                ),
+            verticalArrangement =
+                Arrangement.Center
+        ) {
+
+            Text(
+                text =
+                    "EPISODIO ${
+                        episode.episode_num ?: ""
+                    }",
+                fontSize = 13.sp,
+                color = SeriesAccent,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(
+                modifier = Modifier.height(4.dp)
+            )
+
+            Text(
+                text =
+                    episode.title
+                        ?: episode.info?.name
+                        ?: "Episodio",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+```
