@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.xtreamplayer.data.SeriesStream
 import com.example.xtreamplayer.data.VodStream
 import com.example.xtreamplayer.viewmodel.AppViewModel
 
@@ -22,30 +23,38 @@ private enum class HomeSection {
     SERIES
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     vm: AppViewModel,
     onPlay: (String) -> Unit,
     onMoviePlay: (String, VodStream) -> Unit,
+    onSeriesPlay: (String, SeriesStream, String) -> Unit,
     initialMovie: VodStream? = null,
-    onInitialMovieConsumed: () -> Unit = {}
+    initialSeries: SeriesStream? = null,
+    initialSeason: String? = null,
+    onInitialMovieConsumed: () -> Unit = {},
+    onInitialSeriesConsumed: () -> Unit = {}
 ) {
     var currentSection by remember {
         mutableStateOf(HomeSection.HOME)
     }
 
-    /*
-     * Se arriviamo dal player con un film salvato,
-     * partiamo direttamente dalla sezione FILM.
-     */
-    if (initialMovie != null && currentSection == HomeSection.HOME) {
-        currentSection = HomeSection.MOVIES
+    LaunchedEffect(initialMovie, initialSeries) {
+        when {
+            initialMovie != null -> {
+                currentSection = HomeSection.MOVIES
+            }
+
+            initialSeries != null -> {
+                currentSection = HomeSection.SERIES
+            }
+        }
     }
 
     when (currentSection) {
 
         HomeSection.HOME -> {
+
             HomeMainScreen(
                 vm = vm,
                 onLiveClick = {
@@ -61,6 +70,7 @@ fun HomeScreen(
         }
 
         HomeSection.LIVE -> {
+
             LiveContentScreen(
                 categories = vm.liveCategories,
                 streams = vm.live,
@@ -88,6 +98,7 @@ fun HomeScreen(
         }
 
         HomeSection.MOVIES -> {
+
             MovieContentScreen(
                 categories = vm.movieCategories,
                 movies = vm.movies,
@@ -106,9 +117,10 @@ fun HomeScreen(
 
                         if (id != null) {
 
-                            val movie = vm.movies.firstOrNull {
-                                it.stream_id == id
-                            }
+                            val movie =
+                                vm.movies.firstOrNull {
+                                    it.stream_id == id
+                                }
 
                             if (movie != null) {
 
@@ -135,12 +147,27 @@ fun HomeScreen(
         }
 
         HomeSection.SERIES -> {
+
             SeriesContentScreen(
                 title = "SERIE TV",
                 categories = vm.seriesCategories,
                 series = vm.series,
                 vm = vm,
                 onPlay = onPlay,
+
+                onSeriesPlay = { url, series, season ->
+                    onSeriesPlay(
+                        url,
+                        series,
+                        season
+                    )
+                },
+
+                initialSeries = initialSeries,
+                initialSeason = initialSeason,
+
+                onInitialSeriesConsumed = onInitialSeriesConsumed,
+
                 onBack = {
                     currentSection = HomeSection.HOME
                 }
@@ -149,7 +176,6 @@ fun HomeScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeMainScreen(
     vm: AppViewModel,
@@ -157,99 +183,124 @@ private fun HomeMainScreen(
     onMoviesClick: () -> Unit,
     onSeriesClick: () -> Unit
 ) {
-    val account = vm.auth?.user_info
+    val accentColor = Color(0xFFCAEA00)
+    val backgroundColor = Color(0xFF090909)
+    val surfaceColor = Color(0xFF151515)
 
     Scaffold(
+        containerColor = backgroundColor,
+
         topBar = {
-            TopAppBar(
-                title = {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .background(surfaceColor)
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text = "XTREAM PLAYER",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+
+                TextButton(
+                    onClick = {
+                        vm.updateCatalog()
+                    }
+                ) {
+
                     Text(
-                        "XTREAM PLAYER",
+                        text = "UPDATE",
+                        color = accentColor,
                         fontWeight = FontWeight.Bold
                     )
-                },
-                actions = {
-
-                    TextButton(
-                        onClick = {
-                            vm.updateCatalog()
-                        },
-                        enabled = !vm.loading
-                    ) {
-                        Text(
-                            "UPDATE",
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    TextButton(
-                        onClick = {
-                            vm.logout()
-                        }
-                    ) {
-                        Text("LOGOUT")
-                    }
                 }
-            )
+
+                TextButton(
+                    onClick = {
+                        vm.logout()
+                    }
+                ) {
+
+                    Text(
+                        text = "LOGOUT",
+                        color = Color.LightGray
+                    )
+                }
+            }
         }
-    ) { pad ->
+    ) { padding ->
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(pad)
-                .background(Color(0xFF090909))
+                .padding(padding)
+                .background(backgroundColor)
         ) {
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp)
+                    .padding(horizontal = 30.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
                 Spacer(
-                    modifier = Modifier.height(35.dp)
+                    modifier = Modifier.height(40.dp)
                 )
 
                 Text(
-                    text = "Benvenuto ${account?.username ?: ""}",
-                    style = MaterialTheme.typography.headlineMedium,
+                    text = "BENVENUTO",
+                    color = Color.Gray,
+                    fontSize = 14.sp
+                )
+
+                Spacer(
+                    modifier = Modifier.height(6.dp)
+                )
+
+                Text(
+                    text = vm.auth?.user_info?.username
+                        ?: vm.credentials?.username
+                        ?: "",
+                    color = Color.White,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
 
                 Spacer(
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.height(50.dp)
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(22.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
 
                     HomeCategoryCard(
                         title = "LIVE TV",
-                        subtitle = "Canali televisivi",
+                        modifier = Modifier.width(210.dp),
                         onClick = onLiveClick
-                    )
-
-                    Spacer(
-                        modifier = Modifier.width(20.dp)
                     )
 
                     HomeCategoryCard(
                         title = "FILM",
-                        subtitle = "Film e cinema",
+                        modifier = Modifier.width(210.dp),
                         onClick = onMoviesClick
-                    )
-
-                    Spacer(
-                        modifier = Modifier.width(20.dp)
                     )
 
                     HomeCategoryCard(
                         title = "SERIE TV",
-                        subtitle = "Serie e stagioni",
+                        modifier = Modifier.width(210.dp),
                         onClick = onSeriesClick
                     )
                 }
@@ -258,55 +309,49 @@ private fun HomeMainScreen(
                     modifier = Modifier.weight(1f)
                 )
 
-                account?.exp_date?.let { expiration ->
+                val expiration =
+                    vm.auth?.user_info?.exp_date
+
+                if (!expiration.isNullOrBlank()) {
 
                     Text(
-                        text = "SCADENZA ABBONAMENTO",
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 13.sp
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(4.dp)
-                    )
-
-                    Text(
-                        text = formatExpirationDate(expiration),
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        text = "SCADENZA: ${formatExpirationDate(expiration)}",
+                        color = Color.Gray,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(
+                            bottom = 18.dp
+                        )
                     )
                 }
-
-                Spacer(
-                    modifier = Modifier.height(20.dp)
-                )
             }
 
             if (vm.loading) {
 
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Color.Black.copy(alpha = 0.55f)
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
 
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-
-                        CircularProgressIndicator()
-
-                        Spacer(
-                            modifier = Modifier.height(12.dp)
-                        )
-
-                        Text("Aggiornamento catalogo...")
-                    }
+                    CircularProgressIndicator(
+                        color = accentColor
+                    )
                 }
+            }
+
+            vm.error?.let { error ->
+
+                Text(
+                    text = error,
+                    color = Color.Red,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(20.dp),
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
@@ -315,68 +360,70 @@ private fun HomeMainScreen(
 @Composable
 private fun HomeCategoryCard(
     title: String,
-    subtitle: String,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val accentColor = Color(0xFFCAEA00)
+
     Card(
-        modifier = Modifier
-            .width(280.dp)
-            .height(190.dp)
+        modifier = modifier
+            .height(170.dp)
             .clickable {
                 onClick()
             },
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFF151515)
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 8.dp
         )
     ) {
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.Center
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
 
             Text(
                 text = title,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
             )
 
-            Spacer(
-                modifier = Modifier.height(10.dp)
-            )
-
-            Text(
-                text = subtitle,
-                fontSize = 15.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(accentColor)
             )
         }
     }
 }
 
 private fun formatExpirationDate(
-    expiration: String
+    value: String
 ): String {
+
+    if (value.length != 10) {
+        return value
+    }
+
     return try {
 
-        val timestamp = expiration.toLong()
+        val timestamp =
+            value.toLong()
 
-        val date = java.text.SimpleDateFormat(
-            "dd/MM/yyyy",
-            java.util.Locale.getDefault()
-        )
+        val date =
+            java.text.SimpleDateFormat(
+                "dd/MM/yyyy",
+                java.util.Locale.getDefault()
+            )
 
         date.format(
-            java.util.Date(timestamp * 1000)
+            java.util.Date(timestamp * 1000L)
         )
 
-    } catch (e: Exception) {
-        expiration
+    } catch (_: Exception) {
+
+        value
     }
 }
