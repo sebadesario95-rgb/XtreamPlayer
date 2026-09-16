@@ -1,6 +1,5 @@
 package com.example.xtreamplayer.ui
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,7 +9,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,462 +26,545 @@ import com.example.xtreamplayer.data.Category
 import com.example.xtreamplayer.data.LiveStream
 import com.example.xtreamplayer.data.VodStream
 
+private val BackgroundColor = Color(0xFF090909)
+private val SurfaceColor = Color(0xFF151515)
+private val BorderColor = Color(0xFF292929)
+private val AccentColor = Color(0xFFCAEA00)
+
 @Composable
 fun LiveContentScreen(
-title: String,
-categories: List<Category>,
-streams: List<LiveStream>,
-onPlay: (LiveStream) -> Unit,
-onBack: () -> Unit
+    categories: List<Category>,
+    streams: List<LiveStream>,
+    onBack: () -> Unit,
+    onPlay: (String) -> Unit
 ) {
-var selectedCategoryId by remember {
-mutableStateOf<String?>(null)
-}
+    var selectedCategoryId by remember { mutableStateOf<String?>(null) }
 
-val filteredStreams = remember(
-    streams,
-    selectedCategoryId
-) {
-    if (selectedCategoryId == null) {
-        streams
-    } else {
-        streams.filter {
-            it.category_id == selectedCategoryId
+    val filteredStreams = remember(streams, selectedCategoryId) {
+        if (selectedCategoryId == null) {
+            streams
+        } else {
+            streams.filter {
+                it.category_id == selectedCategoryId
+            }
         }
     }
-}
 
-ContentWithSidebar(
-    title = title,
-    categories = categories,
-    selectedCategoryId = selectedCategoryId,
-    onCategorySelected = {
-        selectedCategoryId = it
-    },
-    onBack = onBack
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(150.dp),
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ContentWithSidebar(
+        title = "LIVE TV",
+        categories = categories,
+        selectedCategoryId = selectedCategoryId,
+        onCategorySelected = { selectedCategoryId = it },
+        onBack = onBack
     ) {
-        items(filteredStreams) { channel ->
-            LiveChannelCard(
-                channel = channel,
-                onClick = {
-                    onPlay(channel)
-                }
+        if (filteredStreams.isEmpty()) {
+            EmptyContentMessage(
+                message = "Nessun canale disponibile"
             )
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 180.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(20.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                items(
+                    items = filteredStreams,
+                    key = { it.stream_id ?: it.num ?: 0 }
+                ) { channel ->
+                    LiveChannelCard(
+                        channel = channel,
+                        onClick = {
+                            val id = channel.stream_id ?: return@LiveChannelCard
+                            onPlay("live:$id")
+                        }
+                    )
+                }
+            }
         }
     }
-}
-
 }
 
 @Composable
 fun MovieContentScreen(
-title: String,
-categories: List<Category>,
-movies: List<VodStream>,
-onMovieClick: (VodStream) -> Unit,
-onBack: () -> Unit
+    categories: List<Category>,
+    movies: List<VodStream>,
+    onBack: () -> Unit,
+    onPlay: (String) -> Unit
 ) {
-var selectedCategoryId by remember {
-mutableStateOf<String?>(null)
-}
+    var selectedCategoryId by remember { mutableStateOf<String?>(null) }
+    var selectedMovie by remember { mutableStateOf<VodStream?>(null) }
 
-val filteredMovies = remember(
-    movies,
-    selectedCategoryId
-) {
-    if (selectedCategoryId == null) {
-        movies
-    } else {
-        movies.filter {
-            it.category_id == selectedCategoryId
+    if (selectedMovie != null) {
+        MovieDetailsScreen(
+            movie = selectedMovie!!,
+            onBack = {
+                selectedMovie = null
+            },
+            onPlay = onPlay
+        )
+        return
+    }
+
+    val filteredMovies = remember(movies, selectedCategoryId) {
+        if (selectedCategoryId == null) {
+            movies
+        } else {
+            movies.filter {
+                it.category_id == selectedCategoryId
+            }
+        }
+    }
+
+    ContentWithSidebar(
+        title = "FILM",
+        categories = categories,
+        selectedCategoryId = selectedCategoryId,
+        onCategorySelected = { selectedCategoryId = it },
+        onBack = onBack
+    ) {
+        if (filteredMovies.isEmpty()) {
+            EmptyContentMessage(
+                message = "Nessun film disponibile"
+            )
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 160.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(20.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                items(
+                    items = filteredMovies,
+                    key = { it.stream_id ?: it.num ?: 0 }
+                ) { movie ->
+                    MovieCard(
+                        movie = movie,
+                        onClick = {
+                            selectedMovie = movie
+                        }
+                    )
+                }
+            }
         }
     }
 }
 
-ContentWithSidebar(
-    title = title,
-    categories = categories,
-    selectedCategoryId = selectedCategoryId,
-    onCategorySelected = {
-        selectedCategoryId = it
-    },
-    onBack = onBack
+@Composable
+private fun ContentWithSidebar(
+    title: String,
+    categories: List<Category>,
+    selectedCategoryId: String?,
+    onCategorySelected: (String?) -> Unit,
+    onBack: () -> Unit,
+    content: @Composable () -> Unit
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(150.dp),
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundColor)
     ) {
-        items(filteredMovies) { movie ->
-            MovieCard(
-                movie = movie,
+
+        // HEADER
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .background(SurfaceColor),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(
+                onClick = onBack
+            ) {
+                Text(
+                    text = "← INDIETRO",
+                    color = AccentColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Text(
+                text = title,
+                modifier = Modifier.padding(start = 8.dp),
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // CONTENUTO
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+
+            // SIDEBAR CATEGORIE
+            CategorySidebar(
+                categories = categories,
+                selectedCategoryId = selectedCategoryId,
+                onCategorySelected = onCategorySelected
+            )
+
+            // SEPARATORE
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(1.dp)
+                    .background(BorderColor)
+            )
+
+            // GRIGLIA CONTENUTI
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(1f)
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategorySidebar(
+    categories: List<Category>,
+    selectedCategoryId: String?,
+    onCategorySelected: (String?) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .width(220.dp)
+            .fillMaxHeight()
+            .background(Color(0xFF0D0D0D)),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        contentPadding = PaddingValues(
+            start = 12.dp,
+            end = 12.dp,
+            top = 16.dp,
+            bottom = 20.dp
+        )
+    ) {
+
+        item {
+            SidebarCategory(
+                name = "TUTTI",
+                selected = selectedCategoryId == null,
                 onClick = {
-                    onMovieClick(movie)
+                    onCategorySelected(null)
+                }
+            )
+        }
+
+        items(
+            items = categories,
+            key = { it.category_id ?: it.category_name ?: "" }
+        ) { category ->
+
+            val id = category.category_id ?: return@items
+
+            SidebarCategory(
+                name = category.category_name ?: "Categoria",
+                selected = selectedCategoryId == id,
+                onClick = {
+                    onCategorySelected(id)
                 }
             )
         }
     }
 }
 
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ContentWithSidebar(
-title: String,
-categories: List<Category>,
-selectedCategoryId: String?,
-onCategorySelected: (String?) -> Unit,
-onBack: () -> Unit,
-content: @Composable () -> Unit
-) {
-Scaffold(
-topBar = {
-TopAppBar(
-title = {
-Text(
-title,
-fontWeight = FontWeight.Bold
-)
-},
-navigationIcon = {
-TextButton(
-onClick = onBack
-) {
-Text("← INDIETRO")
-}
-}
-)
-}
-) { padding ->
-
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
-            .background(Color(0xFF090909))
-    ) {
-
-        CategorySidebar(
-            categories = categories,
-            selectedCategoryId = selectedCategoryId,
-            onCategorySelected = onCategorySelected
-        )
-
-        Box(
-modifier = Modifier
-.fillMaxHeight()
-.width(1.dp)
-.background(Color(0xFF292929))
-)
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(1f)
-        ) {
-            content()
-        }
-    }
-}
-
-}
-
-@Composable
-private fun CategorySidebar(
-categories: List<Category>,
-selectedCategoryId: String?,
-onCategorySelected: (String?) -> Unit
-) {
-LazyColumn(
-modifier = Modifier
-.width(220.dp)
-.fillMaxHeight(),
-verticalArrangement = Arrangement.spacedBy(6.dp),
-contentPadding = PaddingValues(
-start = 12.dp,
-end = 12.dp,
-top = 16.dp,
-bottom = 20.dp
-)
-) {
-item {
-SidebarCategory(
-name = "TUTTI",
-selected = selectedCategoryId == null,
-onClick = {
-onCategorySelected(null)
-}
-)
-}
-
-    items(categories) { category ->
-
-        val id = category.category_id
-            ?: return@items
-
-        SidebarCategory(
-            name = category.category_name
-                ?: "Categoria",
-            selected = selectedCategoryId == id,
-            onClick = {
-                onCategorySelected(id)
-            }
-        )
-    }
-}
-
-}
-
 @Composable
 private fun SidebarCategory(
-name: String,
-selected: Boolean,
-onClick: () -> Unit
+    name: String,
+    selected: Boolean,
+    onClick: () -> Unit
 ) {
-val backgroundColor =
-if (selected) {
-Color(0xFFCAEA00)
-} else {
-Color(0xFF151515)
-}
-
-val textColor =
-    if (selected) {
-        Color.Black
-    } else {
-        Color.White
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(
+                if (selected) {
+                    AccentColor
+                } else {
+                    Color.Transparent
+                }
+            )
+            .clickable {
+                onClick()
+            }
+            .padding(
+                horizontal = 14.dp,
+                vertical = 12.dp
+            )
+    ) {
+        Text(
+            text = name,
+            color = if (selected) {
+                Color.Black
+            } else {
+                Color.White
+            },
+            fontSize = 14.sp,
+            fontWeight = if (selected) {
+                FontWeight.Bold
+            } else {
+                FontWeight.Normal
+            },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
-
-Box(
-    modifier = Modifier
-        .fillMaxWidth()
-        .clip(
-            RoundedCornerShape(8.dp)
-        )
-        .background(backgroundColor)
-        .clickable {
-            onClick()
-        }
-        .padding(
-            horizontal = 14.dp,
-            vertical = 12.dp
-        )
-) {
-    Text(
-        text = name,
-        color = textColor,
-        fontSize = 14.sp,
-        fontWeight = if (selected) {
-            FontWeight.Bold
-        } else {
-            FontWeight.Normal
-        },
-        maxLines = 2,
-        overflow = TextOverflow.Ellipsis
-    )
-}
-
 }
 
 @Composable
 private fun LiveChannelCard(
-channel: LiveStream,
-onClick: () -> Unit
+    channel: LiveStream,
+    onClick: () -> Unit
 ) {
-Card(
-modifier = Modifier
-.fillMaxWidth()
-.height(150.dp)
-.clickable {
-onClick()
-},
-colors = CardDefaults.cardColors(
-containerColor = Color(0xFF151515)
-),
-shape = RoundedCornerShape(10.dp)
-) {
-
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(SurfaceColor)
+            .clickable {
+                onClick()
+            }
+            .padding(10.dp)
     ) {
 
-        AsyncImage(
-            model = channel.stream_icon,
-            contentDescription = channel.name,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(105.dp),
-            contentScale = ContentScale.Fit
+                .height(100.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFF202020)),
+            contentAlignment = Alignment.Center
+        ) {
+
+            if (!channel.stream_icon.isNullOrBlank()) {
+                AsyncImage(
+                    model = channel.stream_icon,
+                    contentDescription = channel.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            } else {
+                Text(
+                    text = "LIVE",
+                    color = AccentColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            }
+        }
+
+        Spacer(
+            modifier = Modifier.height(10.dp)
         )
 
         Text(
             text = channel.name ?: "Canale",
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 10.dp,
-                    vertical = 7.dp
-                ),
             color = Color.White,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
     }
-}
-
 }
 
 @Composable
 private fun MovieCard(
-movie: VodStream,
-onClick: () -> Unit
+    movie: VodStream,
+    onClick: () -> Unit
 ) {
-Card(
-modifier = Modifier
-.fillMaxWidth()
-.height(260.dp)
-.clickable {
-onClick()
-},
-colors = CardDefaults.cardColors(
-containerColor = Color(0xFF151515)
-),
-shape = RoundedCornerShape(10.dp)
-) {
-
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(SurfaceColor)
+            .clickable {
+                onClick()
+            }
     ) {
 
-        AsyncImage(
-            model = movie.stream_icon,
-            contentDescription = movie.name,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
-            contentScale = ContentScale.Crop
-        )
+                .aspectRatio(0.67f)
+                .clip(
+                    RoundedCornerShape(
+                        topStart = 10.dp,
+                        topEnd = 10.dp
+                    )
+                )
+                .background(Color(0xFF202020))
+        ) {
+
+            if (!movie.stream_icon.isNullOrBlank()) {
+                AsyncImage(
+                    model = movie.stream_icon,
+                    contentDescription = movie.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Text(
+                    text = "FILM",
+                    modifier = Modifier.align(Alignment.Center),
+                    color = AccentColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
 
         Text(
             text = movie.name ?: "Film",
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
+            modifier = Modifier.padding(
+                horizontal = 10.dp,
+                vertical = 10.dp
+            ),
             color = Color.White,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
     }
 }
 
-}
-
 @Composable
-fun MovieDetailsScreen(
-movie: VodStream,
-onPlay: () -> Unit,
-onBack: () -> Unit
+private fun MovieDetailsScreen(
+    movie: VodStream,
+    onBack: () -> Unit,
+    onPlay: (String) -> Unit
 ) {
-Scaffold(
-topBar = {
-TopAppBar(
-title = {
-Text(
-movie.name ?: "Film",
-maxLines = 1,
-overflow = TextOverflow.Ellipsis
-)
-},
-navigationIcon = {
-TextButton(
-onClick = onBack
-) {
-Text("← INDIETRO")
-}
-}
-)
-}
-) { padding ->
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(padding)
-            .background(Color(0xFF090909))
-            .padding(30.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(BackgroundColor)
     ) {
 
-        AsyncImage(
-            model = movie.stream_icon,
-            contentDescription = movie.name,
+        Row(
             modifier = Modifier
-                .width(260.dp)
-                .height(360.dp)
-                .clip(
-                    RoundedCornerShape(12.dp)
-                ),
-            contentScale = ContentScale.Crop
-        )
-
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
-
-        Text(
-            text = movie.name ?: "Film",
-            fontSize = 25.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
-
-        Button(
-            onClick = onPlay,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFCAEA00),
-                contentColor = Color.Black
-            )
+                .fillMaxWidth()
+                .height(64.dp)
+                .background(SurfaceColor),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+
+            TextButton(
+                onClick = onBack
+            ) {
+                Text(
+                    text = "← INDIETRO",
+                    color = AccentColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
             Text(
-                "▶ RIPRODUCI",
-                fontWeight = FontWeight.Bold
+                text = movie.name ?: "Film",
+                modifier = Modifier.padding(start = 8.dp),
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(30.dp),
+            horizontalArrangement = Arrangement.spacedBy(30.dp)
+        ) {
+
+            Box(
+                modifier = Modifier
+                    .width(240.dp)
+                    .fillMaxHeight(0.8f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF202020))
+            ) {
+
+                if (!movie.stream_icon.isNullOrBlank()) {
+                    AsyncImage(
+                        model = movie.stream_icon,
+                        contentDescription = movie.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            ) {
+
+                Text(
+                    text = movie.name ?: "Film",
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(
+                    modifier = Modifier.height(16.dp)
+                )
+
+                if (!movie.rating.isNullOrBlank()) {
+                    Text(
+                        text = "⭐ ${movie.rating}",
+                        color = AccentColor,
+                        fontSize = 16.sp
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        val id = movie.stream_id ?: return@Button
+                        onPlay(
+                            "movie:$id:${movie.container_extension ?: "mp4"}"
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AccentColor,
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Text(
+                        text = "▶ RIPRODUCI",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }
 
-}
-
 @Composable
 private fun EmptyContentMessage(
-message: String
+    message: String
 ) {
-Box(
-modifier = Modifier.fillMaxSize(),
-contentAlignment = Alignment.Center
-) {
-Text(
-text = message,
-color = Color.Gray,
-fontSize = 16.sp
-)
-}
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = message,
+            color = Color.Gray,
+            fontSize = 16.sp
+        )
+    }
 }
