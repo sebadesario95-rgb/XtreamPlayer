@@ -55,6 +55,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var series by mutableStateOf<List<SeriesStream>>(emptyList())
         private set
 
+    // =========================
+    // DETTAGLI SERIE
+    // =========================
+
+    var selectedSeriesInfo by mutableStateOf<SeriesInfoResponse?>(null)
+        private set
+
+    var loadingSeriesInfo by mutableStateOf(false)
+        private set
+
     init {
         credentials?.let {
             login(it, save = false)
@@ -99,7 +109,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
                 loggedIn = true
 
-                // Caricamento iniziale
                 loadCatalog(api, c)
 
             } catch (e: Exception) {
@@ -120,7 +129,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         api: XtreamApiService,
         c: Credentials
     ) {
-        // Categorie
         liveCategories = runCatching {
             api.liveCategories(
                 c.username,
@@ -142,7 +150,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             )
         }.getOrDefault(emptyList())
 
-        // Contenuti
         live = runCatching {
             api.liveStreams(
                 c.username,
@@ -193,6 +200,43 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // =========================
+    // DETTAGLI SERIE
+    // =========================
+
+    fun loadSeriesInfo(seriesId: Int) {
+        val c = credentials ?: return
+
+        viewModelScope.launch {
+            loadingSeriesInfo = true
+            error = null
+            selectedSeriesInfo = null
+
+            try {
+                val api = XtreamApiFactory.create(
+                    c.serverUrl
+                )
+
+                selectedSeriesInfo = api.seriesInfo(
+                    username = c.username,
+                    password = c.password,
+                    seriesId = seriesId
+                )
+
+            } catch (e: Exception) {
+                error = e.message
+                    ?: "Impossibile caricare i dettagli della serie."
+            } finally {
+                loadingSeriesInfo = false
+            }
+        }
+    }
+
+    fun clearSeriesInfo() {
+        selectedSeriesInfo = null
+        loadingSeriesInfo = false
+    }
+
+    // =========================
     // LOGOUT
     // =========================
 
@@ -211,6 +255,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         live = emptyList()
         movies = emptyList()
         series = emptyList()
+
+        selectedSeriesInfo = null
     }
 
     // =========================
