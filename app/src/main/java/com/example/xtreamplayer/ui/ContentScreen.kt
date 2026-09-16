@@ -134,7 +134,7 @@ ContentWithSidebar(
 
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ContentWithSidebar(
 title: String,
