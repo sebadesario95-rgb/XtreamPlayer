@@ -1,4 +1,3 @@
-```kotlin
 package com.example.xtreamplayer.ui
 
 import androidx.compose.foundation.background
