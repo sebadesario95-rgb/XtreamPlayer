@@ -72,6 +72,10 @@ fun LiveTvScreen(
         mutableStateOf("")
     }
 
+    var globalSearchText by remember {
+        mutableStateOf("")
+    }
+
     val favoriteIds = vm.favoriteLiveIds
 
     val categoryStreams = remember(
@@ -98,20 +102,35 @@ fun LiveTvScreen(
     }
 
     val filteredStreams = remember(
+        streams,
         categoryStreams,
-        searchText
+        searchText,
+        globalSearchText
     ) {
-        if (searchText.isBlank()) {
-            categoryStreams
-        } else {
-            categoryStreams.filter {
-                it.name
-                    .orEmpty()
-                    .contains(
-                        searchText,
-                        ignoreCase = true
-                    )
+        when {
+            globalSearchText.isNotBlank() -> {
+                streams.filter {
+                    it.name
+                        .orEmpty()
+                        .contains(
+                            globalSearchText,
+                            ignoreCase = true
+                        )
+                }
             }
+
+            searchText.isNotBlank() -> {
+                categoryStreams.filter {
+                    it.name
+                        .orEmpty()
+                        .contains(
+                            searchText,
+                            ignoreCase = true
+                        )
+                }
+            }
+
+            else -> categoryStreams
         }
     }
 
@@ -163,6 +182,13 @@ fun LiveTvScreen(
         ) {
 
             LiveTopBar(
+                globalSearchText = globalSearchText,
+                onGlobalSearchChanged = {
+                    globalSearchText = it
+                    if (it.isNotBlank()) {
+                        searchText = ""
+                    }
+                },
                 onBack = {
                     vm.clearEpg()
                     onBack()
@@ -195,6 +221,7 @@ fun LiveTvScreen(
                             categoryId
 
                         searchText = ""
+                        globalSearchText = ""
 
                         if (
                             selectedLive?.category_id !=
@@ -224,7 +251,11 @@ fun LiveTvScreen(
                         .fillMaxHeight(),
                     streams = filteredStreams,
                     totalCount =
-                        categoryStreams.size,
+                        if (globalSearchText.isNotBlank()) {
+                            filteredStreams.size
+                        } else {
+                            categoryStreams.size
+                        },
                     selectedLive = selectedLive,
                     searchText = searchText,
                     onSearchChanged = {
@@ -300,6 +331,8 @@ fun LiveTvScreen(
 
 @Composable
 private fun LiveTopBar(
+    globalSearchText: String,
+    onGlobalSearchChanged: (String) -> Unit,
     onBack: () -> Unit
 ) {
     Row(
@@ -387,6 +420,15 @@ private fun LiveTopBar(
             modifier = Modifier.weight(1f)
         )
 
+        GlobalLiveSearchField(
+            value = globalSearchText,
+            onValueChange = onGlobalSearchChanged
+        )
+
+        Spacer(
+            modifier = Modifier.width(12.dp)
+        )
+
         Row(
             modifier = Modifier
                 .clip(
@@ -429,6 +471,94 @@ private fun LiveTopBar(
 }
 
 @Composable
+private fun GlobalLiveSearchField(
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .width(230.dp)
+            .height(38.dp)
+            .clip(
+                RoundedCornerShape(12.dp)
+            )
+            .background(
+                Color(0xFF07101A)
+            )
+            .padding(
+                horizontal = 11.dp
+            ),
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+
+        Text(
+            text = "⌕",
+            color =
+                if (value.isNotBlank()) {
+                    LiveBlueLight
+                } else {
+                    LiveMuted
+                },
+            fontSize = 20.sp
+        )
+
+        Spacer(
+            modifier = Modifier.width(8.dp)
+        )
+
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier =
+                Modifier.weight(1f),
+            singleLine = true,
+            textStyle = TextStyle(
+                color = Color.White,
+                fontSize = 12.sp
+            ),
+            cursorBrush =
+                SolidColor(LiveBlue),
+            decorationBox = {
+                innerTextField ->
+
+                Box(
+                    contentAlignment =
+                        Alignment.CenterStart
+                ) {
+                    if (value.isEmpty()) {
+                        Text(
+                            text =
+                                "Cerca in tutti i canali...",
+                            color =
+                                LiveMuted.copy(
+                                    alpha = 0.7f
+                                ),
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    innerTextField()
+                }
+            }
+        )
+
+        if (value.isNotEmpty()) {
+            Text(
+                text = "×",
+                modifier = Modifier
+                    .clickable {
+                        onValueChange("")
+                    }
+                    .padding(4.dp),
+                color = LiveMuted,
+                fontSize = 18.sp
+            )
+        }
+    }
+}
+
+@Composable
 private fun LiveCategoriesPanel(
     modifier: Modifier,
     categories: List<Category>,
@@ -464,21 +594,6 @@ private fun LiveCategoriesPanel(
             Spacer(
                 modifier =
                     Modifier.height(12.dp)
-            )
-
-            CategoryRow(
-                title = "Tutti i canali",
-                selected =
-                    selectedCategoryId == null,
-                count = null,
-                onClick = {
-                    onCategorySelected(null)
-                }
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(6.dp)
             )
 
             CategoryRow(
