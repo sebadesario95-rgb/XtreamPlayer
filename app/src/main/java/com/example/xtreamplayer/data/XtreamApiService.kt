@@ -40,6 +40,14 @@ interface XtreamApiService {
     ): List<VodStream>
 
     @GET("player_api.php")
+    suspend fun getVodInfo(
+        @Query("username") username: String,
+        @Query("password") password: String,
+        @Query("action") action: String = "get_vod_info",
+        @Query("vod_id") vodId: Int
+    ): VodInfoResponse
+
+    @GET("player_api.php")
     suspend fun seriesCategories(
         @Query("username") username: String,
         @Query("password") password: String,
@@ -61,12 +69,6 @@ interface XtreamApiService {
         @Query("series_id") seriesId: Int
     ): SeriesInfoResponse
 
-    /*
-     * EPG breve del singolo canale.
-     *
-     * Scarichiamo soltanto pochi eventi del canale selezionato:
-     * ci serviranno per "Ora in onda" e "A seguire".
-     */
     @GET("player_api.php")
     suspend fun getShortEpg(
         @Query("username") username: String,
