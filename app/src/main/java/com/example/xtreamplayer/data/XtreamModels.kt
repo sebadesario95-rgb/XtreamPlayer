@@ -54,6 +54,54 @@ data class VodStream(
     val container_extension: String? = null
 )
 
+/*
+ * VOD INFO
+ *
+ * Risposta restituita da:
+ * player_api.php?action=get_vod_info&vod_id=...
+ *
+ * I server Xtream possono restituire set di campi leggermente
+ * differenti, quindi manteniamo i valori nullable.
+ */
+data class VodInfoResponse(
+    val info: VodInfo? = null,
+    val movie_data: VodMovieData? = null
+)
+
+data class VodInfo(
+    val movie_image: String? = null,
+    val tmdb_id: String? = null,
+    val name: String? = null,
+    val o_name: String? = null,
+    val cover_big: String? = null,
+    val movie_image_big: String? = null,
+    val releasedate: String? = null,
+    val releaseDate: String? = null,
+    val episode_run_time: String? = null,
+    val duration: String? = null,
+    val duration_secs: Int? = null,
+    val plot: String? = null,
+    val description: String? = null,
+    val cast: String? = null,
+    val director: String? = null,
+    val genre: String? = null,
+    val country: String? = null,
+    val rating: String? = null,
+    val rating_5based: Double? = null,
+    val backdrop_path: List<String>? = null,
+    val youtube_trailer: String? = null
+)
+
+data class VodMovieData(
+    val stream_id: Int? = null,
+    val name: String? = null,
+    val added: String? = null,
+    val category_id: String? = null,
+    val container_extension: String? = null,
+    val custom_sid: String? = null,
+    val direct_source: String? = null
+)
+
 data class SeriesStream(
     val num: Int? = null,
     val name: String? = null,
