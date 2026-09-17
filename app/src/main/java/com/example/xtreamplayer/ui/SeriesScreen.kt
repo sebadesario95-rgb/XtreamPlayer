@@ -720,8 +720,18 @@ private fun SeriesDetailScreen(
     onPlay: (String, String) -> Unit,
     onBack: () -> Unit
 ) {
-
     val info = vm.selectedSeriesInfo
+    val seriesInfo = info?.info
+    val seriesId = series.series_id
+
+    val seasonNumbers =
+        info?.episodes?.keys
+            ?.sortedWith(
+                compareBy {
+                    it.toIntOrNull() ?: Int.MAX_VALUE
+                }
+            )
+            ?: emptyList()
 
     var selectedSeason by remember(
         info,
@@ -729,294 +739,625 @@ private fun SeriesDetailScreen(
     ) {
         mutableStateOf(
             initialSeason
-                ?: info?.episodes?.keys
-                    ?.firstOrNull()
+                ?.takeIf { it in seasonNumbers }
+                ?: seasonNumbers.firstOrNull()
         )
     }
-
-    val seasonNumbers =
-        info?.episodes?.keys
-            ?.sortedWith(
-                compareBy {
-                    it.toIntOrNull()
-                        ?: Int.MAX_VALUE
-                }
-            )
-            ?: emptyList()
 
     LaunchedEffect(
         info,
         initialSeason
     ) {
-        if (
-            initialSeason != null &&
-            initialSeason in seasonNumbers
-        ) {
-            selectedSeason =
-                initialSeason
-        } else if (
-            selectedSeason == null &&
-            seasonNumbers.isNotEmpty()
-        ) {
-            selectedSeason =
-                seasonNumbers.first()
-        }
+        selectedSeason =
+            initialSeason
+                ?.takeIf { it in seasonNumbers }
+                ?: selectedSeason
+                    ?.takeIf { it in seasonNumbers }
+                ?: seasonNumbers.firstOrNull()
     }
 
     val episodes =
         selectedSeason
-            ?.let {
-                info?.episodes?.get(it)
-            }
+            ?.let { info?.episodes?.get(it) }
             ?: emptyList()
 
-    Column(
+    val selectedSeasonInfo =
+        info?.seasons
+            ?.firstOrNull {
+                it.season_number?.toString() ==
+                    selectedSeason
+            }
+
+    val title =
+        seriesInfo?.name
+            ?.takeIf { it.isNotBlank() }
+            ?: series.name
+            ?: "Serie TV"
+
+    val cover =
+        selectedSeasonInfo?.cover
+            ?.takeIf { it.isNotBlank() }
+            ?: seriesInfo?.cover
+                ?.takeIf { it.isNotBlank() }
+            ?: series.cover
+
+    val plot =
+        seriesInfo?.plot
+            ?.takeIf { it.isNotBlank() }
+
+    val genre =
+        seriesInfo?.genre
+            ?.takeIf { it.isNotBlank() }
+
+    val rating =
+        seriesInfo?.rating
+            ?.takeIf { it.isNotBlank() }
+            ?: series.rating
+                ?.takeIf { it.isNotBlank() }
+
+    val favorite =
+        seriesId?.let {
+            vm.isFavoriteSeries(it)
+        } == true
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                SeriesDarkBackground
-            )
+            .background(SeriesMovieBackground)
     ) {
+        /*
+         * Hero: i modelli attuali non espongono un backdrop
+         * dedicato, quindi usiamo la cover reale della serie
+         * come sfondo cinematografico.
+         */
+        AsyncImage(
+            model = cover,
+            contentDescription = title,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+            alpha = 0.22f
+        )
 
-        Row(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .background(
-                    Color(0xFF101010)
-                ),
+                .fillMaxSize()
+                .background(Color(0xD9050A12))
+        )
 
-            verticalAlignment =
-                Alignment.CenterVertically
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-
-            TextButton(
-                onClick = onBack
-            ) {
-
-                Text(
-                    text = "‹",
-                    color = SeriesAccentGreen,
-                    fontSize = 34.sp
-                )
-            }
-
-            Text(
-                text =
-                    series.name
-                        ?: "Serie TV",
-
-                color = Color.White,
-                fontSize = 21.sp,
-                fontWeight =
-                    FontWeight.Bold,
-
-                maxLines = 1,
-
-                overflow =
-                    TextOverflow.Ellipsis
-            )
-        }
-
-        if (vm.loadingSeriesInfo) {
-
-            Box(
-                modifier =
-                    Modifier.fillMaxSize(),
-                contentAlignment =
-                    Alignment.Center
-            ) {
-
-                CircularProgressIndicator(
-                    color =
-                        SeriesAccentGreen
-                )
-            }
-
-        } else {
-
+            /*
+             * TOP BAR
+             */
             Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(28.dp),
-                horizontalArrangement =
-                    Arrangement.spacedBy(28.dp)
+                    .fillMaxWidth()
+                    .height(76.dp)
+                    .background(
+                        SeriesMovieTopBar.copy(
+                            alpha = 0.90f
+                        )
+                    )
+                    .padding(
+                        start = 14.dp,
+                        end = 24.dp
+                    ),
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
+                Surface(
+                    onClick = onBack,
+                    modifier = Modifier.size(46.dp),
+                    shape = RoundedCornerShape(23.dp),
+                    color = Color(0xFF111A27)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment =
+                            Alignment.Center
+                    ) {
+                        Text(
+                            text = "‹",
+                            color = Color.White,
+                            fontSize = 34.sp,
+                            fontWeight =
+                                FontWeight.Light
+                        )
+                    }
+                }
 
-                AsyncImage(
-                    model = series.cover,
-                    contentDescription =
-                        series.name,
+                Spacer(Modifier.width(16.dp))
 
-                    modifier = Modifier
-                        .width(260.dp)
-                        .fillMaxHeight()
-                        .clip(
-                            RoundedCornerShape(14.dp)
-                        ),
-
-                    contentScale =
-                        ContentScale.Crop
+                Text(
+                    text = "XTREAM PLAYER",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
                 )
 
-                Column(
+                Spacer(Modifier.width(10.dp))
+
+                Box(
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .weight(1f)
+                        .width(1.dp)
+                        .height(22.dp)
+                        .background(
+                            Color.White.copy(
+                                alpha = 0.22f
+                            )
+                        )
+                )
+
+                Spacer(Modifier.width(10.dp))
+
+                Text(
+                    text = "SERIE TV",
+                    color = SeriesBlue,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(Modifier.weight(1f))
+
+                Row(
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(
+                                SeriesVpnGreen,
+                                RoundedCornerShape(4.dp)
+                            )
+                    )
+
+                    Spacer(Modifier.width(8.dp))
 
                     Text(
-                        text =
-                            info?.info?.name
-                                ?: series.name
-                                ?: "Serie TV",
-
-                        color = Color.White,
-                        fontSize = 28.sp,
-                        fontWeight =
-                            FontWeight.Bold
+                        text = "VPN ATTIVA",
+                        color = SeriesVpnGreen,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
                     )
+                }
+            }
 
-                    Spacer(
-                        modifier =
-                            Modifier.height(12.dp)
-                    )
+            if (vm.loadingSeriesInfo && info == null) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment =
+                        Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment =
+                            Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(
+                            color = SeriesBlue
+                        )
 
-                    info?.info?.plot
-                        ?.takeIf {
-                            it.isNotBlank()
-                        }
-                        ?.let {
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            text =
+                                "Caricamento serie…",
+                            color =
+                                SeriesTextSecondary,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            start = 34.dp,
+                            end = 34.dp,
+                            top = 24.dp,
+                            bottom = 24.dp
+                        ),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(30.dp)
+                ) {
+                    /*
+                     * HERO / INFO
+                     */
+                    Column(
+                        modifier = Modifier
+                            .width(330.dp)
+                            .fillMaxHeight()
+                    ) {
+                        Text(
+                            text = title,
+                            color = Color.White,
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2,
+                            overflow =
+                                TextOverflow.Ellipsis
+                        )
+
+                        if (
+                            rating != null ||
+                            genre != null
+                        ) {
+                            Spacer(Modifier.height(10.dp))
 
                             Text(
-                                text = it,
-                                color = Color.LightGray,
-                                fontSize = 14.sp,
-                                lineHeight =
-                                    20.sp,
-
-                                maxLines = 6,
-
+                                text = listOfNotNull(
+                                    rating?.let { "★ $it" },
+                                    genre
+                                ).joinToString(
+                                    "   •   "
+                                ),
+                                color =
+                                    SeriesTextSecondary,
+                                fontSize = 13.sp,
+                                maxLines = 2,
                                 overflow =
                                     TextOverflow.Ellipsis
                             )
                         }
 
-                    Spacer(
-                        modifier =
-                            Modifier.height(22.dp)
-                    )
+                        if (plot != null) {
+                            Spacer(Modifier.height(16.dp))
 
-                    if (seasonNumbers.isNotEmpty()) {
+                            Text(
+                                text = plot,
+                                color =
+                                    Color.White.copy(
+                                        alpha = 0.82f
+                                    ),
+                                fontSize = 13.sp,
+                                lineHeight = 19.sp,
+                                maxLines = 7,
+                                overflow =
+                                    TextOverflow.Ellipsis
+                            )
+                        }
 
-                        Text(
-                            text = "STAGIONE",
-                            color =
-                                Color.Gray,
-                            fontSize = 12.sp,
-                            fontWeight =
-                                FontWeight.Bold
-                        )
+                        Spacer(Modifier.height(18.dp))
 
-                        Spacer(
-                            modifier =
-                                Modifier.height(8.dp)
-                        )
-
-                        Row(
-                            horizontalArrangement =
-                                Arrangement.spacedBy(8.dp)
-                        ) {
-
-                            seasonNumbers.forEach {
-                                season ->
-
-                                FilterChip(
-                                    selected =
-                                        selectedSeason ==
-                                            season,
-
-                                    onClick = {
-                                        selectedSeason =
-                                            season
-                                    },
-
-                                    label = {
-                                        Text(
-                                            season
-                                        )
-                                    },
-
-                                    colors =
-                                        FilterChipDefaults
-                                            .filterChipColors(
-                                                selectedContainerColor =
-                                                    SeriesAccentGreen,
-                                                selectedLabelColor =
-                                                    Color.Black
+                        if (seriesId != null) {
+                            Surface(
+                                onClick = {
+                                    vm.toggleFavoriteSeries(
+                                        seriesId
+                                    )
+                                },
+                                color =
+                                    Color.Black.copy(
+                                        alpha = 0.32f
+                                    ),
+                                shape =
+                                    RoundedCornerShape(10.dp),
+                                border =
+                                    androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (favorite) {
+                                            SeriesBlue
+                                        } else {
+                                            Color.White.copy(
+                                                alpha = 0.22f
                                             )
-                                )
+                                        }
+                                    )
+                            ) {
+                                Row(
+                                    modifier =
+                                        Modifier.padding(
+                                            horizontal = 16.dp,
+                                            vertical = 11.dp
+                                        ),
+                                    verticalAlignment =
+                                        Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text =
+                                            if (favorite) "★"
+                                            else "☆",
+                                        color =
+                                            if (favorite) {
+                                                SeriesBlue
+                                            } else {
+                                                Color.White
+                                            },
+                                        fontSize = 20.sp
+                                    )
+
+                                    Spacer(Modifier.width(8.dp))
+
+                                    Text(
+                                        text =
+                                            if (favorite) {
+                                                "Nei preferiti"
+                                            } else {
+                                                "Aggiungi ai preferiti"
+                                            },
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        fontWeight =
+                                            FontWeight.SemiBold
+                                    )
+                                }
                             }
                         }
 
-                        Spacer(
-                            modifier =
-                                Modifier.height(18.dp)
-                        )
+                        Spacer(Modifier.height(18.dp))
+
+                        Card(
+                            modifier = Modifier
+                                .width(190.dp)
+                                .weight(1f, fill = false)
+                                .aspectRatio(0.67f)
+                                .border(
+                                    width = 1.dp,
+                                    color =
+                                        Color.White.copy(
+                                            alpha = 0.14f
+                                        ),
+                                    shape =
+                                        RoundedCornerShape(14.dp)
+                                ),
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor =
+                                        SeriesMovieCard
+                                ),
+                            shape =
+                                RoundedCornerShape(14.dp)
+                        ) {
+                            AsyncImage(
+                                model = cover,
+                                contentDescription = title,
+                                modifier =
+                                    Modifier.fillMaxSize(),
+                                contentScale =
+                                    ContentScale.Crop
+                            )
+                        }
                     }
 
-                    if (episodes.isEmpty()) {
-
-                        Text(
-                            text =
-                                "Nessun episodio disponibile.",
-                            color =
-                                Color.Gray
-                        )
-
-                    } else {
-
-                        androidx.compose.foundation.lazy.LazyColumn(
-                            verticalArrangement =
-                                Arrangement.spacedBy(
-                                    10.dp
-                                )
+                    /*
+                     * STAGIONI + EPISODI
+                     */
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    ) {
+                        Row(
+                            modifier =
+                                Modifier.fillMaxWidth(),
+                            verticalAlignment =
+                                Alignment.CenterVertically
                         ) {
+                            Text(
+                                text = "STAGIONI",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            )
 
-                            items(
-                                items = episodes,
-                                key = {
-                                    it.id
-                                        ?: it.episode_num
-                                            ?: 0
-                                }
-                            ) { episode ->
+                            Spacer(Modifier.width(12.dp))
 
-                                EpisodeCard(
-                                    episode = episode,
-                                    onClick = {
+                            Text(
+                                text =
+                                    "${seasonNumbers.size} stagioni",
+                                color =
+                                    SeriesTextSecondary,
+                                fontSize = 13.sp
+                            )
+                        }
 
-                                        val id =
-                                            episode.id
-                                                ?.toIntOrNull()
-                                                ?: return@EpisodeCard
+                        Spacer(Modifier.height(12.dp))
 
-                                        val url =
-                                            vm.streamUrl(
-                                                type = "series",
-                                                id = id,
-                                                extension =
-                                                    episode.container_extension
+                        if (seasonNumbers.isEmpty()) {
+                            Text(
+                                text =
+                                    "Nessuna stagione disponibile.",
+                                color =
+                                    SeriesTextSecondary,
+                                fontSize = 14.sp
+                            )
+                        } else {
+                            LazyVerticalGrid(
+                                columns =
+                                    GridCells.Adaptive(
+                                        minSize = 92.dp
+                                    ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(
+                                        max = 100.dp
+                                    ),
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(8.dp),
+                                verticalArrangement =
+                                    Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(
+                                    items = seasonNumbers,
+                                    key = { it }
+                                ) { season ->
+                                    val selected =
+                                        selectedSeason ==
+                                            season
+
+                                    Surface(
+                                        onClick = {
+                                            selectedSeason =
+                                                season
+                                        },
+                                        color =
+                                            if (selected) {
+                                                SeriesBlue
+                                            } else {
+                                                Color(0xFF111A27)
+                                            },
+                                        shape =
+                                            RoundedCornerShape(
+                                                9.dp
                                             )
-                                                ?: return@EpisodeCard
-
-                                        onPlay(
-                                            url,
-                                            selectedSeason
-                                                ?: ""
-                                        )
+                                    ) {
+                                        Box(
+                                            modifier =
+                                                Modifier.padding(
+                                                    horizontal =
+                                                        12.dp,
+                                                    vertical =
+                                                        10.dp
+                                                ),
+                                            contentAlignment =
+                                                Alignment.Center
+                                        ) {
+                                            Text(
+                                                text =
+                                                    "Stagione $season",
+                                                color =
+                                                    Color.White,
+                                                fontSize =
+                                                    12.sp,
+                                                fontWeight =
+                                                    if (selected) {
+                                                        FontWeight.Bold
+                                                    } else {
+                                                        FontWeight.Medium
+                                                    },
+                                                maxLines = 1
+                                            )
+                                        }
                                     }
+                                }
+                            }
+                        }
+
+                        selectedSeasonInfo
+                            ?.overview
+                            ?.takeIf {
+                                it.isNotBlank()
+                            }
+                            ?.let { overview ->
+                                Spacer(
+                                    Modifier.height(
+                                        10.dp
+                                    )
                                 )
+
+                                Text(
+                                    text = overview,
+                                    color =
+                                        SeriesTextSecondary,
+                                    fontSize = 12.sp,
+                                    lineHeight = 17.sp,
+                                    maxLines = 2,
+                                    overflow =
+                                        TextOverflow.Ellipsis
+                                )
+                            }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        Row(
+                            modifier =
+                                Modifier.fillMaxWidth(),
+                            verticalAlignment =
+                                Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text =
+                                    selectedSeason?.let {
+                                        "EPISODI · STAGIONE $it"
+                                    } ?: "EPISODI",
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight =
+                                    FontWeight.Bold
+                            )
+
+                            Spacer(Modifier.width(12.dp))
+
+                            Text(
+                                text =
+                                    "${episodes.size} episodi",
+                                color =
+                                    SeriesTextSecondary,
+                                fontSize = 13.sp
+                            )
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
+                        if (episodes.isEmpty()) {
+                            Box(
+                                modifier =
+                                    Modifier.fillMaxSize(),
+                                contentAlignment =
+                                    Alignment.Center
+                            ) {
+                                Text(
+                                    text =
+                                        "Nessun episodio disponibile.",
+                                    color =
+                                        SeriesTextSecondary,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier =
+                                    Modifier.fillMaxSize(),
+                                verticalArrangement =
+                                    Arrangement.spacedBy(
+                                        10.dp
+                                    ),
+                                contentPadding =
+                                    PaddingValues(
+                                        bottom = 12.dp
+                                    )
+                            ) {
+                                items(
+                                    items = episodes,
+                                    key = {
+                                        it.id
+                                            ?: it.episode_num
+                                            ?: 0
+                                    }
+                                ) { episode ->
+                                    CinematicEpisodeCard(
+                                        episode = episode,
+                                        onClick = {
+                                            val id =
+                                                episode.id
+                                                    ?.toIntOrNull()
+                                                    ?: return@CinematicEpisodeCard
+
+                                            /*
+                                             * PLAYBACK SACRO:
+                                             * stesso builder e stessa
+                                             * estensione del flusso
+                                             * funzionante precedente.
+                                             */
+                                            val url =
+                                                vm.streamUrl(
+                                                    type = "series",
+                                                    id = id,
+                                                    extension =
+                                                        episode.container_extension
+                                                )
+                                                    ?: return@CinematicEpisodeCard
+
+                                            onPlay(
+                                                url,
+                                                selectedSeason
+                                                    ?: ""
+                                            )
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -1027,103 +1368,173 @@ private fun SeriesDetailScreen(
 }
 
 @Composable
-private fun EpisodeCard(
+private fun CinematicEpisodeCard(
     episode: SeriesEpisode,
     onClick: () -> Unit
 ) {
+    val episodeInfo = episode.info
+
+    val episodeTitle =
+        episode.title
+            ?.takeIf { it.isNotBlank() }
+            ?: episodeInfo?.name
+                ?.takeIf { it.isNotBlank() }
+            ?: "Episodio"
+
+    val metadata =
+        listOfNotNull(
+            episodeInfo?.duration
+                ?.takeIf { it.isNotBlank() },
+            episodeInfo?.rating
+                ?.takeIf { it.isNotBlank() }
+                ?.let { "★ $it" }
+        )
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(82.dp),
-
+            .height(112.dp),
         colors = CardDefaults.cardColors(
             containerColor =
-                SeriesCardBackground
+                Color(0xCC0C1420)
         ),
-
         onClick = onClick,
-
-        shape =
-            RoundedCornerShape(10.dp)
+        shape = RoundedCornerShape(12.dp)
     ) {
-
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(10.dp),
-
             verticalAlignment =
                 Alignment.CenterVertically
         ) {
-
-            AsyncImage(
-                model =
-                    episode.info?.movie_image,
-
-                contentDescription =
-                    episode.title,
-
+            Box(
                 modifier = Modifier
-                    .width(105.dp)
+                    .width(150.dp)
                     .fillMaxHeight()
                     .clip(
-                        RoundedCornerShape(7.dp)
+                        RoundedCornerShape(8.dp)
+                    )
+                    .background(
+                        Color(0xFF111A27)
                     ),
+                contentAlignment =
+                    Alignment.Center
+            ) {
+                AsyncImage(
+                    model =
+                        episodeInfo?.movie_image,
+                    contentDescription =
+                        episodeTitle,
+                    modifier =
+                        Modifier.fillMaxSize(),
+                    contentScale =
+                        ContentScale.Crop
+                )
 
-                contentScale =
-                    ContentScale.Crop
-            )
+                Surface(
+                    modifier = Modifier
+                        .align(
+                            Alignment.BottomStart
+                        )
+                        .padding(7.dp),
+                    color =
+                        Color.Black.copy(
+                            alpha = 0.72f
+                        ),
+                    shape =
+                        RoundedCornerShape(6.dp)
+                ) {
+                    Text(
+                        text =
+                            "E${episode.episode_num ?: ""}",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight =
+                            FontWeight.Bold,
+                        modifier =
+                            Modifier.padding(
+                                horizontal = 7.dp,
+                                vertical = 4.dp
+                            )
+                    )
+                }
+            }
 
-            Spacer(
-                modifier =
-                    Modifier.width(12.dp)
-            )
+            Spacer(Modifier.width(14.dp))
 
             Column(
                 modifier =
                     Modifier.weight(1f)
             ) {
-
                 Text(
-                    text =
-                        "Episodio ${
-                            episode.episode_num
-                                ?: ""
-                        }",
-
-                    color =
-                        SeriesAccentGreen,
-
-                    fontSize = 12.sp,
-                    fontWeight =
-                        FontWeight.Bold
-                )
-
-                Text(
-                    text =
-                        episode.title
-                            ?: episode.info?.name
-                            ?: "Episodio",
-
+                    text = episodeTitle,
                     color = Color.White,
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                     fontWeight =
                         FontWeight.SemiBold,
-
-                    maxLines = 2,
-
+                    maxLines = 1,
                     overflow =
                         TextOverflow.Ellipsis
                 )
+
+                if (metadata.isNotEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+
+                    Text(
+                        text =
+                            metadata.joinToString(
+                                "   •   "
+                            ),
+                        color =
+                            SeriesTextSecondary,
+                        fontSize = 11.sp,
+                        maxLines = 1
+                    )
+                }
+
+                episodeInfo?.plot
+                    ?.takeIf {
+                        it.isNotBlank()
+                    }
+                    ?.let { episodePlot ->
+                        Spacer(Modifier.height(5.dp))
+
+                        Text(
+                            text = episodePlot,
+                            color =
+                                Color.White.copy(
+                                    alpha = 0.68f
+                                ),
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp,
+                            maxLines = 2,
+                            overflow =
+                                TextOverflow.Ellipsis
+                        )
+                    }
             }
 
-            Text(
-                text = "▶",
-                color =
-                    SeriesAccentGreen,
-                fontSize = 20.sp
-            )
+            Spacer(Modifier.width(12.dp))
+
+            Surface(
+                color = SeriesBlue,
+                shape =
+                    RoundedCornerShape(20.dp)
+            ) {
+                Box(
+                    modifier =
+                        Modifier.size(38.dp),
+                    contentAlignment =
+                        Alignment.Center
+                ) {
+                    Text(
+                        text = "▶",
+                        color = Color.White,
+                        fontSize = 15.sp
+                    )
+                }
+            }
         }
     }
 }
