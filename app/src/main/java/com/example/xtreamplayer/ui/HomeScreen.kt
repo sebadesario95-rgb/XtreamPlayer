@@ -96,34 +96,21 @@ fun HomeScreen(
         }
 
         HomeSection.LIVE -> {
-    LiveContentScreen(
-        title = "LIVE TV",
-        categories = vm.liveCategories,
-        streams = vm.live,
-        vm = vm,
-
-        onPlay = { url ->
-            onPlay(url)
-        },
-
-        onLivePlay = { url, liveStream ->
-            onLivePlay(
-                url,
-                liveStream
+            LiveTvScreen(
+                categories = vm.liveCategories,
+                streams = vm.live,
+                vm = vm,
+                initialLive = initialLive,
+                onLivePlay = { url, liveStream ->
+                    onInitialLiveConsumed()
+                    onLivePlay(url, liveStream)
+                },
+                onBack = {
+                    onInitialLiveConsumed()
+                    currentSection = HomeSection.HOME
+                }
             )
-        },
-
-        initialCategoryId = initialLive?.category_id,
-
-        onInitialLiveConsumed = {
-            onInitialLiveConsumed()
-        },
-
-        onBack = {
-            currentSection = HomeSection.HOME
         }
-    )
-}
 
         HomeSection.MOVIES -> {
     MovieContentScreen(
