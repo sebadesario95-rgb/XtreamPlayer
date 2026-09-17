@@ -1453,10 +1453,9 @@ private fun LiveCard(
 }
 
 /*
- * Vecchio dettaglio Film.
- *
- * Lo lasciamo intenzionalmente funzionante per questo build.
- * Nel prossimo step verrà completamente sostituito.
+ * ============================================================
+ * DETTAGLIO FILM CINEMATOGRAFICO
+ * ============================================================
  */
 @Composable
 private fun MovieDetailScreen(
@@ -1465,152 +1464,348 @@ private fun MovieDetailScreen(
     onPlay: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    Column(
+    val streamId = movie.stream_id
+
+    LaunchedEffect(streamId) {
+        streamId?.let { vm.loadVodInfo(it) }
+    }
+
+    DisposableEffect(streamId) {
+        onDispose { vm.clearVodInfo() }
+    }
+
+    val response = vm.selectedVodInfo
+    val info = response?.info
+    val movieData = response?.movie_data
+
+    val title = info?.name?.takeIf { it.isNotBlank() }
+        ?: movieData?.name?.takeIf { it.isNotBlank() }
+        ?: movie.name
+        ?: "Film"
+
+    val poster = info?.cover_big?.takeIf { it.isNotBlank() }
+        ?: info?.movie_image_big?.takeIf { it.isNotBlank() }
+        ?: info?.movie_image?.takeIf { it.isNotBlank() }
+        ?: movie.stream_icon
+
+    val backdrop = info?.backdrop_path
+        ?.firstOrNull { it.isNotBlank() }
+        ?: poster
+
+    val releaseDate = info?.releasedate?.takeIf { it.isNotBlank() }
+        ?: info?.releaseDate?.takeIf { it.isNotBlank() }
+
+    val year = releaseDate
+        ?.take(4)
+        ?.takeIf { value -> value.length == 4 && value.all { it.isDigit() } }
+
+    val duration = info?.duration?.takeIf { it.isNotBlank() }
+        ?: info?.episode_run_time?.takeIf { it.isNotBlank() }
+
+    val rating = info?.rating?.takeIf { it.isNotBlank() }
+        ?: movie.rating?.takeIf { it.isNotBlank() }
+
+    val genre = info?.genre?.takeIf { it.isNotBlank() }
+    val plot = info?.plot?.takeIf { it.isNotBlank() }
+        ?: info?.description?.takeIf { it.isNotBlank() }
+    val director = info?.director?.takeIf { it.isNotBlank() }
+    val cast = info?.cast?.takeIf { it.isNotBlank() }
+    val country = info?.country?.takeIf { it.isNotBlank() }
+
+    val metadata = listOfNotNull(
+        year,
+        duration,
+        rating?.let { "★ $it" },
+        genre
+    )
+
+    val favorite = streamId?.let { vm.isFavoriteMovie(it) } == true
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MovieBackground)
     ) {
+        AsyncImage(
+            model = backdrop,
+            contentDescription = title,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+            alpha = 0.34f
+        )
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .background(
-                    Color(0xFF101010)
-                ),
-            verticalAlignment =
-                Alignment.CenterVertically
-        ) {
-
-            TextButton(
-                onClick = onBack
-            ) {
-                Text(
-                    text = "‹",
-                    color = AccentGreen,
-                    fontSize = 34.sp
-                )
-            }
-
-            Text(
-                text =
-                    movie.name
-                        ?: "Film",
-                color = Color.White,
-                fontSize = 21.sp,
-                fontWeight =
-                    FontWeight.Bold,
-                maxLines = 1,
-                overflow =
-                    TextOverflow.Ellipsis
-            )
-        }
-
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(28.dp),
-            horizontalArrangement =
-                Arrangement.spacedBy(
-                    28.dp
-                )
-        ) {
+                .background(Color(0xD9050A12))
+        )
 
-            AsyncImage(
-                model =
-                    movie.stream_icon,
-                contentDescription =
-                    movie.name,
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
                 modifier = Modifier
-                    .width(260.dp)
-                    .fillMaxHeight()
-                    .clip(
-                        RoundedCornerShape(
-                            14.dp
-                        )
-                    ),
-                contentScale =
-                    ContentScale.Crop
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .weight(1f)
+                    .fillMaxWidth()
+                    .height(76.dp)
+                    .background(MovieTopBar.copy(alpha = 0.90f))
+                    .padding(start = 14.dp, end = 24.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Surface(
+                    onClick = onBack,
+                    modifier = Modifier.size(46.dp),
+                    shape = RoundedCornerShape(23.dp),
+                    color = Color(0xFF111A27)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "‹",
+                            color = Color.White,
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.Light
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
 
                 Text(
-                    text =
-                        movie.name
-                            ?: "Film",
+                    text = "XTREAM PLAYER",
                     color = Color.White,
-                    fontSize = 28.sp,
-                    fontWeight =
-                        FontWeight.Bold
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
                 )
 
-                Spacer(
-                    modifier =
-                        Modifier.height(
-                            14.dp
-                        )
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(22.dp)
+                        .background(Color.White.copy(alpha = 0.22f))
                 )
 
-                movie.rating
-                    ?.takeIf {
-                        it.isNotBlank()
-                    }
-                    ?.let {
-                        Text(
-                            text = "★ $it",
-                            color =
-                                AccentGreen,
-                            fontSize =
-                                16.sp
-                        )
-                    }
+                Spacer(modifier = Modifier.width(10.dp))
 
-                Spacer(
-                    modifier =
-                        Modifier.height(
-                            24.dp
-                        )
+                Text(
+                    text = "FILM",
+                    color = MovieBlue,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
                 )
 
-                Button(
-                    onClick = {
-                        val id =
-                            movie.stream_id
-                                ?: return@Button
+                Spacer(modifier = Modifier.weight(1f))
 
-                        val url =
-                            vm.streamUrl(
-                                type = "movie",
-                                id = id,
-                                extension =
-                                    movie.container_extension
-                            )
-                                ?: return@Button
-
-                        onPlay(url)
-                    },
-                    colors =
-                        ButtonDefaults
-                            .buttonColors(
-                                containerColor =
-                                    AccentGreen,
-                                contentColor =
-                                    Color.Black
-                            )
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(VpnGreen, RoundedCornerShape(4.dp))
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text =
-                            "▶  RIPRODUCI",
-                        fontWeight =
-                            FontWeight.Bold
+                        text = "VPN ATTIVA",
+                        color = VpnGreen,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 42.dp, end = 42.dp, top = 28.dp, bottom = 28.dp),
+                horizontalArrangement = Arrangement.spacedBy(36.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    if (vm.loadingVodInfo) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = MovieBlue,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Caricamento dettagli…",
+                                color = MovieTextSecondary,
+                                fontSize = 13.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+                    }
+
+                    Text(
+                        text = title,
+                        color = Color.White,
+                        fontSize = 38.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    if (metadata.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = metadata.joinToString("   •   "),
+                            color = MovieTextSecondary,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    if (plot != null) {
+                        Spacer(modifier = Modifier.height(22.dp))
+                        Text(
+                            text = plot,
+                            color = Color.White.copy(alpha = 0.86f),
+                            fontSize = 15.sp,
+                            lineHeight = 22.sp,
+                            maxLines = 6,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    } else if (!vm.loadingVodInfo && vm.vodInfoError != null) {
+                        Spacer(modifier = Modifier.height(18.dp))
+                        Text(
+                            text = "Informazioni dettagliate non disponibili.",
+                            color = MovieTextSecondary,
+                            fontSize = 14.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(26.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val id = movie.stream_id ?: return@Button
+                                val extension = movieData?.container_extension
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?: movie.container_extension
+
+                                val url = vm.streamUrl(
+                                    type = "movie",
+                                    id = id,
+                                    extension = extension
+                                ) ?: return@Button
+
+                                onPlay(url)
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MovieBlue,
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 13.dp)
+                        ) {
+                            Text(
+                                text = "▶  GUARDA ORA",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        if (streamId != null) {
+                            Surface(
+                                onClick = { vm.toggleFavoriteMovie(streamId) },
+                                color = Color.Black.copy(alpha = 0.38f),
+                                shape = RoundedCornerShape(10.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    if (favorite) MovieBlue else Color.White.copy(alpha = 0.24f)
+                                )
+                            ) {
+                                Text(
+                                    text = if (favorite) "★" else "☆",
+                                    color = if (favorite) MovieBlue else Color.White,
+                                    fontSize = 22.sp,
+                                    modifier = Modifier.padding(horizontal = 17.dp, vertical = 10.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    if (director != null || cast != null || country != null) {
+                        Spacer(modifier = Modifier.height(26.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(Color.White.copy(alpha = 0.10f))
+                        )
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        director?.let { MovieInfoLine("REGIA", it) }
+                        cast?.let { MovieInfoLine("CAST", it) }
+                        country?.let { MovieInfoLine("PAESE", it) }
+                    }
+                }
+
+                Card(
+                    modifier = Modifier
+                        .width(250.dp)
+                        .fillMaxHeight()
+                        .padding(top = 10.dp, bottom = 10.dp)
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = 0.14f),
+                            shape = RoundedCornerShape(16.dp)
+                        ),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MovieCardBackground
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    AsyncImage(
+                        model = poster,
+                        contentDescription = title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MovieInfoLine(
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = label,
+            color = MovieBlue,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.width(58.dp)
+        )
+
+        Text(
+            text = value,
+            color = Color.White.copy(alpha = 0.78f),
+            fontSize = 12.sp,
+            lineHeight = 17.sp,
+            maxLines = if (label == "CAST") 2 else 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
