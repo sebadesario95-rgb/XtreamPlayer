@@ -102,3 +102,29 @@ data class SeriesEpisodeInfo(
     val duration: String? = null,
     val rating: String? = null
 )
+
+/*
+ * EPG
+ *
+ * Risposta restituita da player_api.php?action=get_short_epg.
+ * I campi rimangono nullable perché i diversi server Xtream
+ * non restituiscono sempre esattamente gli stessi dati.
+ */
+data class ShortEpgResponse(
+    val epg_listings: List<EpgListing>? = null
+)
+
+data class EpgListing(
+    val id: String? = null,
+    val epg_id: String? = null,
+    val title: String? = null,
+    val lang: String? = null,
+    val start: String? = null,
+    val end: String? = null,
+    val description: String? = null,
+    val channel_id: String? = null,
+    val start_timestamp: String? = null,
+    val stop_timestamp: String? = null,
+    val now_playing: Int? = null,
+    val has_archive: Int? = null
+)
