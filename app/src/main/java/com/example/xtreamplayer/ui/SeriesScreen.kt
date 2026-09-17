@@ -964,123 +964,85 @@ private fun SeriesDetailScreen(
                 ) {
                     /*
                      * HERO / INFO
+                     * Ordine definitivo:
+                     * locandina -> preferiti -> titolo/metadata -> trama.
                      */
                     Column(
                         modifier = Modifier
                             .width(330.dp)
                             .fillMaxHeight()
                     ) {
-                        Text(
-                            text = title,
-                            color = Color.White,
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 2,
-                            overflow =
-                                TextOverflow.Ellipsis
-                        )
-
-                        if (
-                            rating != null ||
-                            genre != null
-                        ) {
-                            Spacer(Modifier.height(10.dp))
-
-                            Text(
-                                text = listOfNotNull(
-                                    rating?.let { "★ $it" },
-                                    genre
-                                ).joinToString(
-                                    "   •   "
+                        Card(
+                            modifier = Modifier
+                                .width(220.dp)
+                                .height(300.dp)
+                                .border(
+                                    width = 1.dp,
+                                    color = Color.White.copy(alpha = 0.14f),
+                                    shape = RoundedCornerShape(14.dp)
                                 ),
-                                color =
-                                    SeriesTextSecondary,
-                                fontSize = 13.sp,
-                                maxLines = 2,
-                                overflow =
-                                    TextOverflow.Ellipsis
+                            colors = CardDefaults.cardColors(
+                                containerColor = SeriesMovieCard
+                            ),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            AsyncImage(
+                                model = cover,
+                                contentDescription = title,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
                             )
                         }
 
-                        if (plot != null) {
-                            Spacer(Modifier.height(16.dp))
-
-                            Text(
-                                text = plot,
-                                color =
-                                    Color.White.copy(
-                                        alpha = 0.82f
-                                    ),
-                                fontSize = 13.sp,
-                                lineHeight = 19.sp,
-                                maxLines = 7,
-                                overflow =
-                                    TextOverflow.Ellipsis
-                            )
-                        }
-
-                        Spacer(Modifier.height(18.dp))
+                        Spacer(Modifier.height(14.dp))
 
                         if (seriesId != null) {
                             Surface(
                                 onClick = {
-                                    vm.toggleFavoriteSeries(
-                                        seriesId
-                                    )
+                                    vm.toggleFavoriteSeries(seriesId)
                                 },
-                                color =
-                                    Color.Black.copy(
-                                        alpha = 0.32f
-                                    ),
-                                shape =
-                                    RoundedCornerShape(10.dp),
-                                border =
-                                    androidx.compose.foundation.BorderStroke(
-                                        1.dp,
-                                        if (favorite) {
-                                            SeriesBlue
-                                        } else {
-                                            Color.White.copy(
-                                                alpha = 0.22f
-                                            )
-                                        }
-                                    )
+                                modifier = Modifier.width(220.dp),
+                                color = Color.Black.copy(alpha = 0.32f),
+                                shape = RoundedCornerShape(10.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    if (favorite) {
+                                        SeriesBlue
+                                    } else {
+                                        Color.White.copy(alpha = 0.22f)
+                                    }
+                                )
                             ) {
                                 Row(
-                                    modifier =
-                                        Modifier.padding(
-                                            horizontal = 16.dp,
-                                            vertical = 11.dp
-                                        ),
-                                    verticalAlignment =
-                                        Alignment.CenterVertically
+                                    modifier = Modifier.padding(
+                                        horizontal = 16.dp,
+                                        vertical = 11.dp
+                                    ),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text =
-                                            if (favorite) "★"
-                                            else "☆",
-                                        color =
-                                            if (favorite) {
-                                                SeriesBlue
-                                            } else {
-                                                Color.White
-                                            },
+                                        text = if (favorite) "★" else "☆",
+                                        color = if (favorite) {
+                                            SeriesBlue
+                                        } else {
+                                            Color.White
+                                        },
                                         fontSize = 20.sp
                                     )
 
                                     Spacer(Modifier.width(8.dp))
 
                                     Text(
-                                        text =
-                                            if (favorite) {
-                                                "Nei preferiti"
-                                            } else {
-                                                "Aggiungi ai preferiti"
-                                            },
+                                        text = if (favorite) {
+                                            "Nei preferiti"
+                                        } else {
+                                            "Aggiungi ai preferiti"
+                                        },
                                         color = Color.White,
                                         fontSize = 13.sp,
-                                        fontWeight =
-                                            FontWeight.SemiBold
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1
                                     )
                                 }
                             }
@@ -1088,35 +1050,40 @@ private fun SeriesDetailScreen(
 
                         Spacer(Modifier.height(18.dp))
 
-                        Card(
-                            modifier = Modifier
-                                .width(190.dp)
-                                .weight(1f, fill = false)
-                                .aspectRatio(0.67f)
-                                .border(
-                                    width = 1.dp,
-                                    color =
-                                        Color.White.copy(
-                                            alpha = 0.14f
-                                        ),
-                                    shape =
-                                        RoundedCornerShape(14.dp)
-                                ),
-                            colors =
-                                CardDefaults.cardColors(
-                                    containerColor =
-                                        SeriesMovieCard
-                                ),
-                            shape =
-                                RoundedCornerShape(14.dp)
-                        ) {
-                            AsyncImage(
-                                model = cover,
-                                contentDescription = title,
-                                modifier =
-                                    Modifier.fillMaxSize(),
-                                contentScale =
-                                    ContentScale.Crop
+                        Text(
+                            text = title,
+                            color = Color.White,
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+
+                        if (rating != null || genre != null) {
+                            Spacer(Modifier.height(8.dp))
+
+                            Text(
+                                text = listOfNotNull(
+                                    rating?.let { "★ $it" },
+                                    genre
+                                ).joinToString("   •   "),
+                                color = SeriesTextSecondary,
+                                fontSize = 13.sp,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        if (plot != null) {
+                            Spacer(Modifier.height(12.dp))
+
+                            Text(
+                                text = plot,
+                                color = Color.White.copy(alpha = 0.82f),
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp,
+                                maxLines = 5,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
