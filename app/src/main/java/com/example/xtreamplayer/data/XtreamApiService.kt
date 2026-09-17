@@ -12,49 +12,49 @@ interface XtreamApiService {
     ): AuthResponse
 
     @GET("player_api.php")
-    suspend fun getLiveCategories(
+    suspend fun liveCategories(
         @Query("username") username: String,
         @Query("password") password: String,
         @Query("action") action: String = "get_live_categories"
     ): List<Category>
 
     @GET("player_api.php")
-    suspend fun getLiveStreams(
+    suspend fun liveStreams(
         @Query("username") username: String,
         @Query("password") password: String,
         @Query("action") action: String = "get_live_streams"
     ): List<LiveStream>
 
     @GET("player_api.php")
-    suspend fun getVodCategories(
+    suspend fun vodCategories(
         @Query("username") username: String,
         @Query("password") password: String,
         @Query("action") action: String = "get_vod_categories"
     ): List<Category>
 
     @GET("player_api.php")
-    suspend fun getVodStreams(
+    suspend fun vodStreams(
         @Query("username") username: String,
         @Query("password") password: String,
         @Query("action") action: String = "get_vod_streams"
     ): List<VodStream>
 
     @GET("player_api.php")
-    suspend fun getSeriesCategories(
+    suspend fun seriesCategories(
         @Query("username") username: String,
         @Query("password") password: String,
         @Query("action") action: String = "get_series_categories"
     ): List<Category>
 
     @GET("player_api.php")
-    suspend fun getSeriesStreams(
+    suspend fun series(
         @Query("username") username: String,
         @Query("password") password: String,
         @Query("action") action: String = "get_series"
     ): List<SeriesStream>
 
     @GET("player_api.php")
-    suspend fun getSeriesInfo(
+    suspend fun seriesInfo(
         @Query("username") username: String,
         @Query("password") password: String,
         @Query("action") action: String = "get_series_info",
@@ -64,9 +64,8 @@ interface XtreamApiService {
     /*
      * EPG breve del singolo canale.
      *
-     * Usiamo stream_id perché get_short_epg lavora sullo stream
-     * Xtream selezionato. limit=4 ci evita di scaricare dati
-     * inutili: ci servono soltanto programma attuale e successivo.
+     * Scarichiamo soltanto pochi eventi del canale selezionato:
+     * ci serviranno per "Ora in onda" e "A seguire".
      */
     @GET("player_api.php")
     suspend fun getShortEpg(
