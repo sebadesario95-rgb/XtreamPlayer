@@ -69,8 +69,33 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var favoriteSeriesIds by mutableStateOf<Set<Int>>(emptySet())
         private set
 
+    /*
+     * EPG
+     *
+     * selectedEpg contiene il palinsesto breve del canale
+     * attualmente selezionato nella schermata Live.
+     */
+    var selectedEpg by mutableStateOf<List<EpgListing>>(emptyList())
+        private set
+
+    var loadingEpg by mutableStateOf(false)
+        private set
+
+    var epgError by mutableStateOf<String?>(null)
+        private set
+
+    /*
+     * Cache in memoria per evitare di richiedere continuamente
+     * lo stesso EPG quando l'utente torna su un canale già aperto.
+     */
+    private val epgCache =
+        mutableMapOf<Int, List<EpgListing>>()
+
+    private var selectedEpgStreamId: Int? = null
+
     init {
         loadFavorites()
+
         credentials?.let {
             login(it, save = false)
         }
@@ -128,6 +153,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
             } catch (e: Exception) {
                 loggedIn = false
+
                 error =
                     e.message
                         ?: "Impossibile collegarsi al server."
@@ -252,6 +278,108 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         loadingSeriesInfo = false
     }
 
+    /*
+     * Carica l'EPG breve del singolo canale Live.
+     *
+     * Se il canale è già presente nella cache, i dati vengono
+     * restituiti immediatamente senza una nuova chiamata HTTP.
+     */
+    fun loadShortEpg(
+        streamId: Int
+    ) {
+        val c = credentials ?: return
+
+        selectedEpgStreamId = streamId
+        epgError = null
+
+        val cached =
+            epgCache[streamId]
+
+        if (cached != null) {
+            selectedEpg = cached
+            loadingEpg = false
+            return
+        }
+
+        selectedEpg = emptyList()
+        loadingEpg = true
+
+        viewModelScope.launch {
+            try {
+                val api =
+                    XtreamApiFactory.create(
+                        c.serverUrl
+                    )
+
+                val response =
+                    api.getShortEpg(
+                        username = c.username,
+                        password = c.password,
+                        streamId = streamId,
+                        limit = 4
+                    )
+
+                val listings =
+                    response.epg_listings
+                        ?: emptyList()
+
+                epgCache[streamId] =
+                    listings
+
+                /*
+                 * L'utente potrebbe aver selezionato un altro
+                 * canale mentre la richiesta era in corso.
+                 * Aggiorniamo la UI solo se siamo ancora sullo
+                 * stesso stream.
+                 */
+                if (
+                    selectedEpgStreamId ==
+                    streamId
+                ) {
+                    selectedEpg = listings
+                }
+
+            } catch (e: Exception) {
+
+                if (
+                    selectedEpgStreamId ==
+                    streamId
+                ) {
+                    selectedEpg = emptyList()
+
+                    epgError =
+                        e.message
+                            ?: "EPG non disponibile."
+                }
+
+            } finally {
+
+                if (
+                    selectedEpgStreamId ==
+                    streamId
+                ) {
+                    loadingEpg = false
+                }
+            }
+        }
+    }
+
+    fun clearEpg() {
+        selectedEpgStreamId = null
+        selectedEpg = emptyList()
+        loadingEpg = false
+        epgError = null
+    }
+
+    /*
+     * Permette di forzare in futuro un aggiornamento EPG.
+     * Per ora non viene chiamato automaticamente dalla UI.
+     */
+    fun clearEpgCache() {
+        epgCache.clear()
+        clearEpg()
+    }
+
     fun toggleFavoriteLive(
         id: Int
     ) {
@@ -357,7 +485,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 JSONArray(raw)
 
             buildSet {
-                for (i in 0 until array.length()) {
+                for (
+                    i in 0 until
+                    array.length()
+                ) {
                     add(
                         array.getInt(i)
                     )
@@ -405,6 +536,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         series = emptyList()
 
         selectedSeriesInfo = null
+
+        epgCache.clear()
+        clearEpg()
     }
 
     fun streamUrl(
