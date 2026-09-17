@@ -1,5 +1,6 @@
 package com.example.xtreamplayer.ui
 
+import android.util.Base64
 import android.view.ViewGroup
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -29,8 +30,12 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import com.example.xtreamplayer.data.Category
+import com.example.xtreamplayer.data.EpgListing
 import com.example.xtreamplayer.data.LiveStream
 import com.example.xtreamplayer.viewmodel.AppViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private val LiveBlue = Color(0xFF1677FF)
 private val LiveBlueLight = Color(0xFF20B7FF)
@@ -125,10 +130,19 @@ fun LiveTvScreen(
             }
     }
 
+    /*
+     * Se arriviamo qui dopo il fullscreen con un canale
+     * già selezionato, ricarichiamo anche il suo EPG.
+     */
     LaunchedEffect(initialLive) {
         if (initialLive != null) {
             selectedLive = initialLive
-            selectedCategoryId = initialLive.category_id
+            selectedCategoryId =
+                initialLive.category_id
+
+            initialLive.stream_id?.let { id ->
+                vm.loadShortEpg(id)
+            }
         }
     }
 
@@ -149,7 +163,10 @@ fun LiveTvScreen(
         ) {
 
             LiveTopBar(
-                onBack = onBack
+                onBack = {
+                    vm.clearEpg()
+                    onBack()
+                }
             )
 
             Spacer(
@@ -157,9 +174,9 @@ fun LiveTvScreen(
             )
 
             Row(
-                modifier = Modifier
-                    .fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement =
+                    Arrangement.spacedBy(14.dp)
             ) {
 
                 LiveCategoriesPanel(
@@ -167,24 +184,36 @@ fun LiveTvScreen(
                         .width(190.dp)
                         .fillMaxHeight(),
                     categories = categories,
-                    selectedCategoryId = selectedCategoryId,
-                    favoriteCount = favoriteIds.size,
-                    onCategorySelected = { categoryId ->
-                        selectedCategoryId = categoryId
+                    selectedCategoryId =
+                        selectedCategoryId,
+                    favoriteCount =
+                        favoriteIds.size,
+                    onCategorySelected = {
+                        categoryId ->
+
+                        selectedCategoryId =
+                            categoryId
+
                         searchText = ""
 
                         if (
-                            selectedLive?.category_id != categoryId &&
-                            categoryId != FAVORITES_CATEGORY
+                            selectedLive?.category_id !=
+                            categoryId &&
+                            categoryId !=
+                            FAVORITES_CATEGORY
                         ) {
                             selectedLive = null
+                            vm.clearEpg()
                         }
 
                         if (
-                            categoryId == FAVORITES_CATEGORY &&
-                            selectedLive?.stream_id !in favoriteIds
+                            categoryId ==
+                            FAVORITES_CATEGORY &&
+                            selectedLive?.stream_id
+                                !in favoriteIds
                         ) {
                             selectedLive = null
+                            vm.clearEpg()
                         }
                     }
                 )
@@ -194,7 +223,8 @@ fun LiveTvScreen(
                         .width(315.dp)
                         .fillMaxHeight(),
                     streams = filteredStreams,
-                    totalCount = categoryStreams.size,
+                    totalCount =
+                        categoryStreams.size,
                     selectedLive = selectedLive,
                     searchText = searchText,
                     onSearchChanged = {
@@ -202,23 +232,36 @@ fun LiveTvScreen(
                     },
                     onChannelClick = { stream ->
 
-                        val id = stream.stream_id
-                            ?: return@LiveChannelListPanel
+                        val id =
+                            stream.stream_id
+                                ?: return@LiveChannelListPanel
 
-                        val url = vm.streamUrl(
-                            type = "live",
-                            id = id
-                        ) ?: return@LiveChannelListPanel
+                        val url =
+                            vm.streamUrl(
+                                type = "live",
+                                id = id
+                            )
+                                ?: return@LiveChannelListPanel
 
                         if (
-                            selectedLive?.stream_id == id
+                            selectedLive?.stream_id ==
+                            id
                         ) {
+                            /*
+                             * Secondo click:
+                             * fullscreen come prima.
+                             */
                             onLivePlay(
                                 url,
                                 stream
                             )
                         } else {
+                            /*
+                             * Primo click:
+                             * preview + EPG vero.
+                             */
                             selectedLive = stream
+                            vm.loadShortEpg(id)
                         }
                     }
                 )
@@ -229,12 +272,19 @@ fun LiveTvScreen(
                         .fillMaxHeight(),
                     stream = selectedLive,
                     streamUrl = selectedUrl,
-                    isFavorite = selectedLive
-                        ?.stream_id
-                        ?.let {
-                            vm.isFavoriteLive(it)
-                        }
-                        ?: false,
+                    isFavorite =
+                        selectedLive
+                            ?.stream_id
+                            ?.let {
+                                vm.isFavoriteLive(it)
+                            }
+                            ?: false,
+                    epgListings =
+                        vm.selectedEpg,
+                    loadingEpg =
+                        vm.loadingEpg,
+                    epgError =
+                        vm.epgError,
                     onToggleFavorite = {
                         selectedLive
                             ?.stream_id
@@ -256,20 +306,23 @@ private fun LiveTopBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(58.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
 
         TextButton(
             onClick = onBack,
-            contentPadding = PaddingValues(
-                horizontal = 8.dp
-            )
+            contentPadding =
+                PaddingValues(
+                    horizontal = 8.dp
+                )
         ) {
             Text(
                 text = "‹",
                 color = Color.White,
                 fontSize = 34.sp,
-                fontWeight = FontWeight.Light
+                fontWeight =
+                    FontWeight.Light
             )
         }
 
@@ -278,27 +331,31 @@ private fun LiveTopBar(
         )
 
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment =
+                Alignment.CenterVertically
         ) {
             Text(
                 text = "X",
                 color = LiveBlue,
                 fontSize = 28.sp,
-                fontWeight = FontWeight.Black
+                fontWeight =
+                    FontWeight.Black
             )
 
             Text(
                 text = "TREAM",
                 color = Color.White,
                 fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight =
+                    FontWeight.Bold
             )
 
             Text(
                 text = " PLAYER",
                 color = LiveBlueLight,
                 fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight =
+                    FontWeight.Bold
             )
         }
 
@@ -321,7 +378,8 @@ private fun LiveTopBar(
             text = "LIVE TV",
             color = LiveMuted,
             fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight =
+                FontWeight.SemiBold,
             letterSpacing = 1.5.sp
         )
 
@@ -341,7 +399,8 @@ private fun LiveTopBar(
                     horizontal = 13.dp,
                     vertical = 7.dp
                 ),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment =
+                Alignment.CenterVertically
         ) {
 
             Box(
@@ -361,7 +420,8 @@ private fun LiveTopBar(
                 text = "VPN ATTIVA",
                 color = LiveGreen,
                 fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight =
+                    FontWeight.Bold,
                 letterSpacing = 0.7.sp
             )
         }
@@ -379,7 +439,8 @@ private fun LiveCategoriesPanel(
     Surface(
         modifier = modifier,
         color = LivePanel,
-        shape = RoundedCornerShape(18.dp),
+        shape =
+            RoundedCornerShape(18.dp),
         border = BorderStroke(
             1.dp,
             LiveBorder
@@ -395,17 +456,20 @@ private fun LiveCategoriesPanel(
                 text = "CATEGORIE",
                 color = Color.White,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight =
+                    FontWeight.Bold,
                 letterSpacing = 1.2.sp
             )
 
             Spacer(
-                modifier = Modifier.height(12.dp)
+                modifier =
+                    Modifier.height(12.dp)
             )
 
             CategoryRow(
                 title = "Tutti i canali",
-                selected = selectedCategoryId == null,
+                selected =
+                    selectedCategoryId == null,
                 count = null,
                 onClick = {
                     onCategorySelected(null)
@@ -413,14 +477,15 @@ private fun LiveCategoriesPanel(
             )
 
             Spacer(
-                modifier = Modifier.height(6.dp)
+                modifier =
+                    Modifier.height(6.dp)
             )
 
             CategoryRow(
                 title = "Preferiti",
                 selected =
                     selectedCategoryId ==
-                        FAVORITES_CATEGORY,
+                    FAVORITES_CATEGORY,
                 count = favoriteCount,
                 onClick = {
                     onCategorySelected(
@@ -430,7 +495,8 @@ private fun LiveCategoriesPanel(
             )
 
             Spacer(
-                modifier = Modifier.height(8.dp)
+                modifier =
+                    Modifier.height(8.dp)
             )
 
             Box(
@@ -441,11 +507,13 @@ private fun LiveCategoriesPanel(
             )
 
             Spacer(
-                modifier = Modifier.height(8.dp)
+                modifier =
+                    Modifier.height(8.dp)
             )
 
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier =
+                    Modifier.fillMaxSize(),
                 verticalArrangement =
                     Arrangement.spacedBy(5.dp)
             ) {
@@ -454,7 +522,8 @@ private fun LiveCategoriesPanel(
                     key = {
                         it.category_id
                             ?: it.category_name
-                            ?: it.hashCode().toString()
+                            ?: it.hashCode()
+                                .toString()
                     }
                 ) { category ->
 
@@ -463,10 +532,12 @@ private fun LiveCategoriesPanel(
 
                     CategoryRow(
                         title =
-                            category.category_name
+                            category
+                                .category_name
                                 ?: "Categoria",
                         selected =
-                            selectedCategoryId == id,
+                            selectedCategoryId ==
+                            id,
                         count = null,
                         onClick = {
                             onCategorySelected(id)
@@ -504,7 +575,8 @@ private fun CategoryRow(
                 horizontal = 10.dp,
                 vertical = 9.dp
             ),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
 
         Box(
@@ -528,7 +600,8 @@ private fun CategoryRow(
 
         Text(
             text = title,
-            modifier = Modifier.weight(1f),
+            modifier =
+                Modifier.weight(1f),
             color =
                 if (selected) {
                     Color.White
@@ -543,7 +616,8 @@ private fun CategoryRow(
                     FontWeight.Medium
                 },
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow =
+                TextOverflow.Ellipsis
         )
 
         if (count != null) {
@@ -574,7 +648,8 @@ private fun LiveChannelListPanel(
     Surface(
         modifier = modifier,
         color = LivePanel,
-        shape = RoundedCornerShape(18.dp),
+        shape =
+            RoundedCornerShape(18.dp),
         border = BorderStroke(
             1.dp,
             LiveBorder
@@ -587,7 +662,8 @@ private fun LiveChannelListPanel(
         ) {
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier =
+                    Modifier.fillMaxWidth(),
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
@@ -595,44 +671,53 @@ private fun LiveChannelListPanel(
                     text = "CANALI",
                     color = Color.White,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight =
+                        FontWeight.Bold,
                     letterSpacing = 1.2.sp
                 )
 
                 Spacer(
-                    modifier = Modifier.weight(1f)
+                    modifier =
+                        Modifier.weight(1f)
                 )
 
                 Text(
-                    text = totalCount.toString(),
+                    text =
+                        totalCount.toString(),
                     color = LiveMuted,
                     fontSize = 10.sp
                 )
             }
 
             Spacer(
-                modifier = Modifier.height(11.dp)
+                modifier =
+                    Modifier.height(11.dp)
             )
 
             LiveSearchField(
                 value = searchText,
-                onValueChange = onSearchChanged
+                onValueChange =
+                    onSearchChanged
             )
 
             Spacer(
-                modifier = Modifier.height(11.dp)
+                modifier =
+                    Modifier.height(11.dp)
             )
 
             if (streams.isEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize(),
+                    modifier =
+                        Modifier.fillMaxSize(),
                     contentAlignment =
                         Alignment.Center
                 ) {
                     Text(
                         text =
-                            if (searchText.isNotBlank()) {
+                            if (
+                                searchText
+                                    .isNotBlank()
+                            ) {
                                 "Nessun canale trovato"
                             } else {
                                 "Nessun canale disponibile"
@@ -646,7 +731,9 @@ private fun LiveChannelListPanel(
                     modifier =
                         Modifier.fillMaxSize(),
                     verticalArrangement =
-                        Arrangement.spacedBy(6.dp)
+                        Arrangement.spacedBy(
+                            6.dp
+                        )
                 ) {
                     items(
                         items = streams,
@@ -661,9 +748,11 @@ private fun LiveChannelListPanel(
                             selected =
                                 selectedLive
                                     ?.stream_id ==
-                                    stream.stream_id,
+                                stream.stream_id,
                             onClick = {
-                                onChannelClick(stream)
+                                onChannelClick(
+                                    stream
+                                )
                             }
                         )
                     }
@@ -708,7 +797,8 @@ private fun LiveSearchField(
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.weight(1f),
+            modifier =
+                Modifier.weight(1f),
             singleLine = true,
             textStyle = TextStyle(
                 color = Color.White,
@@ -716,14 +806,17 @@ private fun LiveSearchField(
             ),
             cursorBrush =
                 SolidColor(LiveBlue),
-            decorationBox = { innerTextField ->
+            decorationBox = {
+                innerTextField ->
+
                 Box(
                     contentAlignment =
                         Alignment.CenterStart
                 ) {
                     if (value.isEmpty()) {
                         Text(
-                            text = "Cerca canale...",
+                            text =
+                                "Cerca canale...",
                             color =
                                 LiveMuted.copy(
                                     alpha = 0.7f
@@ -781,9 +874,14 @@ private fun ChannelRow(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         color = background,
-        shape = RoundedCornerShape(11.dp),
+        shape =
+            RoundedCornerShape(11.dp),
         border = BorderStroke(
-            if (selected) 1.2.dp else 0.7.dp,
+            if (selected) {
+                1.2.dp
+            } else {
+                0.7.dp
+            },
             border
         )
     ) {
@@ -799,15 +897,20 @@ private fun ChannelRow(
         ) {
 
             Surface(
-                modifier = Modifier.size(38.dp),
-                color = Color(0xFF101C29),
-                shape = RoundedCornerShape(8.dp)
+                modifier =
+                    Modifier.size(38.dp),
+                color =
+                    Color(0xFF101C29),
+                shape =
+                    RoundedCornerShape(8.dp)
             ) {
                 if (
-                    !stream.stream_icon.isNullOrBlank()
+                    !stream.stream_icon
+                        .isNullOrBlank()
                 ) {
                     AsyncImage(
-                        model = stream.stream_icon,
+                        model =
+                            stream.stream_icon,
                         contentDescription =
                             stream.name,
                         modifier = Modifier
@@ -822,11 +925,13 @@ private fun ChannelRow(
                             Alignment.Center
                     ) {
                         Text(
-                            text = stream.name
-                                ?.take(1)
-                                ?.uppercase()
-                                ?: "TV",
-                            color = LiveBlueLight,
+                            text =
+                                stream.name
+                                    ?.take(1)
+                                    ?.uppercase()
+                                    ?: "TV",
+                            color =
+                                LiveBlueLight,
                             fontSize = 12.sp,
                             fontWeight =
                                 FontWeight.Bold
@@ -836,11 +941,13 @@ private fun ChannelRow(
             }
 
             Spacer(
-                modifier = Modifier.width(10.dp)
+                modifier =
+                    Modifier.width(10.dp)
             )
 
             Column(
-                modifier = Modifier.weight(1f)
+                modifier =
+                    Modifier.weight(1f)
             ) {
                 Text(
                     text =
@@ -860,7 +967,8 @@ private fun ChannelRow(
                 )
 
                 Spacer(
-                    modifier = Modifier.height(2.dp)
+                    modifier =
+                        Modifier.height(2.dp)
                 )
 
                 Text(
@@ -903,12 +1011,16 @@ private fun LivePreviewPanel(
     stream: LiveStream?,
     streamUrl: String?,
     isFavorite: Boolean,
+    epgListings: List<EpgListing>,
+    loadingEpg: Boolean,
+    epgError: String?,
     onToggleFavorite: () -> Unit
 ) {
     Surface(
         modifier = modifier,
         color = LivePanel,
-        shape = RoundedCornerShape(18.dp),
+        shape =
+            RoundedCornerShape(18.dp),
         border = BorderStroke(
             1.dp,
             LiveBorder
@@ -920,6 +1032,18 @@ private fun LivePreviewPanel(
         ) {
             EmptyLivePreview()
         } else {
+
+            val currentProgram =
+                findCurrentProgram(
+                    epgListings
+                )
+
+            val nextProgram =
+                findNextProgram(
+                    epgListings,
+                    currentProgram
+                )
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -934,7 +1058,8 @@ private fun LivePreviewPanel(
                 )
 
                 Spacer(
-                    modifier = Modifier.height(14.dp)
+                    modifier =
+                        Modifier.height(12.dp)
                 )
 
                 Row(
@@ -946,7 +1071,7 @@ private fun LivePreviewPanel(
 
                     Surface(
                         modifier =
-                            Modifier.size(52.dp),
+                            Modifier.size(48.dp),
                         color =
                             Color(0xFF101C29),
                         shape =
@@ -1001,7 +1126,7 @@ private fun LivePreviewPanel(
                                 stream.name
                                     ?: "Canale Live",
                             color = Color.White,
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             fontWeight =
                                 FontWeight.Bold,
                             maxLines = 1,
@@ -1011,14 +1136,14 @@ private fun LivePreviewPanel(
 
                         Spacer(
                             modifier =
-                                Modifier.height(4.dp)
+                                Modifier.height(3.dp)
                         )
 
                         Text(
                             text =
                                 "Trasmissione in diretta",
                             color = LiveMuted,
-                            fontSize = 11.sp
+                            fontSize = 10.sp
                         )
                     }
 
@@ -1031,67 +1156,482 @@ private fun LivePreviewPanel(
                 }
 
                 Spacer(
-                    modifier = Modifier.height(12.dp)
+                    modifier =
+                        Modifier.height(10.dp)
                 )
 
-                Surface(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-                    color =
-                        Color(0xFF07101A),
-                    shape =
-                        RoundedCornerShape(12.dp),
-                    border =
-                        BorderStroke(
-                            1.dp,
-                            LiveBorder.copy(
-                                alpha = 0.65f
-                            )
-                        )
+                EpgPanel(
+                    loading = loadingEpg,
+                    error = epgError,
+                    current =
+                        currentProgram,
+                    next =
+                        nextProgram
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EpgPanel(
+    loading: Boolean,
+    error: String?,
+    current: EpgListing?,
+    next: EpgListing?
+) {
+    Surface(
+        modifier =
+            Modifier.fillMaxWidth(),
+        color =
+            Color(0xFF07101A),
+        shape =
+            RoundedCornerShape(12.dp),
+        border = BorderStroke(
+            1.dp,
+            LiveBorder.copy(
+                alpha = 0.65f
+            )
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(
+                horizontal = 14.dp,
+                vertical = 10.dp
+            )
+        ) {
+
+            if (loading) {
+
+                Row(
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
-                    Column(
-                        modifier = Modifier.padding(
-                            horizontal = 14.dp,
-                            vertical = 11.dp
-                        )
-                    ) {
-                        Text(
-                            text = "ORA IN ONDA",
-                            color = LiveBlueLight,
-                            fontSize = 9.sp,
-                            fontWeight =
-                                FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
+                    CircularProgressIndicator(
+                        modifier =
+                            Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = LiveBlueLight
+                    )
 
-                        Spacer(
-                            modifier =
-                                Modifier.height(4.dp)
-                        )
+                    Spacer(
+                        modifier =
+                            Modifier.width(9.dp)
+                    )
 
-                        Text(
-                            text =
-                                "Informazioni EPG disponibili prossimamente",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight =
-                                FontWeight.Medium
-                        )
-                    }
+                    Text(
+                        text =
+                            "Caricamento EPG...",
+                        color = LiveMuted,
+                        fontSize = 11.sp
+                    )
                 }
 
+                return@Column
+            }
+
+            if (
+                error != null &&
+                current == null
+            ) {
+                Text(
+                    text = "EPG",
+                    color = LiveBlueLight,
+                    fontSize = 9.sp,
+                    fontWeight =
+                        FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+
                 Spacer(
-                    modifier = Modifier.height(9.dp)
+                    modifier =
+                        Modifier.height(4.dp)
                 )
 
                 Text(
                     text =
-                        "Premi di nuovo lo stesso canale per aprirlo a schermo intero.",
+                        "EPG non disponibile",
                     color = LiveMuted,
-                    fontSize = 10.sp
+                    fontSize = 11.sp
+                )
+
+                return@Column
+            }
+
+            if (current == null) {
+                Text(
+                    text = "EPG",
+                    color = LiveBlueLight,
+                    fontSize = 9.sp,
+                    fontWeight =
+                        FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(4.dp)
+                )
+
+                Text(
+                    text =
+                        "Nessuna informazione disponibile per questo canale",
+                    color = LiveMuted,
+                    fontSize = 11.sp
+                )
+
+                return@Column
+            }
+
+            Text(
+                text = "ORA IN ONDA",
+                color = LiveBlueLight,
+                fontSize = 9.sp,
+                fontWeight =
+                    FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+
+            Spacer(
+                modifier =
+                    Modifier.height(4.dp)
+            )
+
+            Text(
+                text =
+                    buildProgramLine(current),
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight =
+                    FontWeight.SemiBold,
+                maxLines = 1,
+                overflow =
+                    TextOverflow.Ellipsis
+            )
+
+            val description =
+                decodeEpgText(
+                    current.description
+                )
+
+            if (description.isNotBlank()) {
+                Spacer(
+                    modifier =
+                        Modifier.height(4.dp)
+                )
+
+                Text(
+                    text = description,
+                    color = LiveMuted,
+                    fontSize = 10.sp,
+                    maxLines = 2,
+                    overflow =
+                        TextOverflow.Ellipsis
+                )
+            }
+
+            if (next != null) {
+
+                Spacer(
+                    modifier =
+                        Modifier.height(9.dp)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(
+                            LiveBorder.copy(
+                                alpha = 0.6f
+                            )
+                        )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(8.dp)
+                )
+
+                Text(
+                    text = "A SEGUIRE",
+                    color = LiveMuted,
+                    fontSize = 9.sp,
+                    fontWeight =
+                        FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(3.dp)
+                )
+
+                Text(
+                    text =
+                        buildProgramLine(next),
+                    color =
+                        Color.White.copy(
+                            alpha = 0.9f
+                        ),
+                    fontSize = 11.sp,
+                    fontWeight =
+                        FontWeight.Medium,
+                    maxLines = 1,
+                    overflow =
+                        TextOverflow.Ellipsis
                 )
             }
         }
+    }
+}
+
+private fun findCurrentProgram(
+    listings: List<EpgListing>
+): EpgListing? {
+
+    if (listings.isEmpty()) {
+        return null
+    }
+
+    val now =
+        System.currentTimeMillis() / 1000L
+
+    /*
+     * Prima proviamo con i timestamp, che sono
+     * il dato più affidabile.
+     */
+    val byTimestamp =
+        listings.firstOrNull { item ->
+
+            val start =
+                item.start_timestamp
+                    ?.toLongOrNull()
+
+            val end =
+                item.stop_timestamp
+                    ?.toLongOrNull()
+
+            start != null &&
+            end != null &&
+            now >= start &&
+            now < end
+        }
+
+    if (byTimestamp != null) {
+        return byTimestamp
+    }
+
+    /*
+     * Alcuni server indicano esplicitamente
+     * il programma corrente.
+     */
+    val byNowPlaying =
+        listings.firstOrNull {
+            it.now_playing == 1
+        }
+
+    if (byNowPlaying != null) {
+        return byNowPlaying
+    }
+
+    /*
+     * Fallback: il primo elemento restituito
+     * dal short EPG.
+     */
+    return listings.firstOrNull()
+}
+
+private fun findNextProgram(
+    listings: List<EpgListing>,
+    current: EpgListing?
+): EpgListing? {
+
+    if (
+        listings.isEmpty() ||
+        current == null
+    ) {
+        return null
+    }
+
+    val index =
+        listings.indexOf(current)
+
+    if (
+        index >= 0 &&
+        index + 1 < listings.size
+    ) {
+        return listings[index + 1]
+    }
+
+    val currentEnd =
+        current.stop_timestamp
+            ?.toLongOrNull()
+            ?: return null
+
+    return listings
+        .filter { item ->
+            item.start_timestamp
+                ?.toLongOrNull()
+                ?.let {
+                    it >= currentEnd
+                }
+                ?: false
+        }
+        .minByOrNull {
+            it.start_timestamp
+                ?.toLongOrNull()
+                ?: Long.MAX_VALUE
+        }
+}
+
+private fun buildProgramLine(
+    item: EpgListing
+): String {
+
+    val title =
+        decodeEpgText(item.title)
+            .ifBlank {
+                "Programma"
+            }
+
+    val start =
+        formatEpgTime(
+            item.start_timestamp,
+            item.start
+        )
+
+    val end =
+        formatEpgTime(
+            item.stop_timestamp,
+            item.end
+        )
+
+    return if (
+        start.isNotBlank() &&
+        end.isNotBlank()
+    ) {
+        "$start – $end  •  $title"
+    } else {
+        title
+    }
+}
+
+private fun formatEpgTime(
+    timestamp: String?,
+    fallbackDate: String?
+): String {
+
+    timestamp
+        ?.toLongOrNull()
+        ?.let { seconds ->
+
+            return try {
+                SimpleDateFormat(
+                    "HH:mm",
+                    Locale.getDefault()
+                ).format(
+                    Date(
+                        seconds * 1000L
+                    )
+                )
+            } catch (
+                _: Exception
+            ) {
+                ""
+            }
+        }
+
+    if (
+        fallbackDate.isNullOrBlank()
+    ) {
+        return ""
+    }
+
+    val formats =
+        listOf(
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm"
+        )
+
+    formats.forEach { pattern ->
+
+        try {
+            val parser =
+                SimpleDateFormat(
+                    pattern,
+                    Locale.US
+                )
+
+            val date =
+                parser.parse(
+                    fallbackDate
+                )
+
+            if (date != null) {
+                return SimpleDateFormat(
+                    "HH:mm",
+                    Locale.getDefault()
+                ).format(date)
+            }
+
+        } catch (
+            _: Exception
+        ) {
+        }
+    }
+
+    return ""
+}
+
+/*
+ * Molti server Xtream restituiscono titolo e descrizione
+ * EPG codificati in Base64. Altri restituiscono testo normale.
+ *
+ * Questa funzione supporta entrambi senza mostrare stringhe
+ * incomprensibili all'utente.
+ */
+private fun decodeEpgText(
+    value: String?
+): String {
+
+    if (value.isNullOrBlank()) {
+        return ""
+    }
+
+    val clean =
+        value.trim()
+
+    return try {
+
+        val decoded =
+            String(
+                Base64.decode(
+                    clean,
+                    Base64.DEFAULT
+                ),
+                Charsets.UTF_8
+            ).trim()
+
+        /*
+         * Evitiamo di interpretare accidentalmente
+         * del normale testo come Base64.
+         */
+        if (
+            decoded.isNotBlank() &&
+            decoded.none {
+                it == '\uFFFD'
+            }
+        ) {
+            decoded
+        } else {
+            clean
+        }
+
+    } catch (
+        _: Exception
+    ) {
+        clean
     }
 }
 
@@ -1109,7 +1649,8 @@ private fun FavoriteButton(
             } else {
                 Color.Transparent
             },
-        shape = RoundedCornerShape(10.dp),
+        shape =
+            RoundedCornerShape(10.dp),
         border = BorderStroke(
             1.dp,
             if (isFavorite) {
@@ -1144,7 +1685,8 @@ private fun FavoriteButton(
             )
 
             Spacer(
-                modifier = Modifier.width(7.dp)
+                modifier =
+                    Modifier.width(7.dp)
             )
 
             Text(
@@ -1156,7 +1698,8 @@ private fun FavoriteButton(
                     },
                 color = Color.White,
                 fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight =
+                    FontWeight.Bold
             )
         }
     }
@@ -1168,7 +1711,8 @@ private fun EmptyLivePreview() {
         modifier = Modifier
             .fillMaxSize()
             .padding(30.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment =
+            Alignment.Center
     ) {
         Column(
             horizontalAlignment =
@@ -1176,8 +1720,10 @@ private fun EmptyLivePreview() {
         ) {
 
             Surface(
-                modifier = Modifier.size(72.dp),
-                color = Color(0x201677FF),
+                modifier =
+                    Modifier.size(72.dp),
+                color =
+                    Color(0x201677FF),
                 shape = CircleShape,
                 border = BorderStroke(
                     1.dp,
@@ -1187,31 +1733,37 @@ private fun EmptyLivePreview() {
                 )
             ) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier =
+                        Modifier.fillMaxSize(),
                     contentAlignment =
                         Alignment.Center
                 ) {
                     Text(
                         text = "▶",
-                        color = LiveBlueLight,
+                        color =
+                            LiveBlueLight,
                         fontSize = 27.sp
                     )
                 }
             }
 
             Spacer(
-                modifier = Modifier.height(18.dp)
+                modifier =
+                    Modifier.height(18.dp)
             )
 
             Text(
-                text = "Seleziona un canale",
+                text =
+                    "Seleziona un canale",
                 color = Color.White,
                 fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight =
+                    FontWeight.Bold
             )
 
             Spacer(
-                modifier = Modifier.height(7.dp)
+                modifier =
+                    Modifier.height(7.dp)
             )
 
             Text(
@@ -1231,7 +1783,8 @@ private fun LivePreviewPlayer(
     modifier: Modifier = Modifier
 ) {
     val context =
-        androidx.compose.ui.platform.LocalContext.current
+        androidx.compose.ui.platform
+            .LocalContext.current
 
     val player = remember(url) {
         ExoPlayer.Builder(context)
@@ -1266,8 +1819,10 @@ private fun LivePreviewPlayer(
 
                 layoutParams =
                     ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
+                        ViewGroup.LayoutParams
+                            .MATCH_PARENT,
+                        ViewGroup.LayoutParams
+                            .MATCH_PARENT
                     )
             }
         },
