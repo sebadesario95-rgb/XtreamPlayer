@@ -2,8 +2,10 @@ package com.example.xtreamplayer.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -26,12 +28,25 @@ import com.example.xtreamplayer.data.SeriesEpisode
 import com.example.xtreamplayer.data.SeriesStream
 import com.example.xtreamplayer.viewmodel.AppViewModel
 
+/*
+ * Palette legacy del dettaglio Serie attuale.
+ * In questo step il dettaglio resta intenzionalmente invariato.
+ */
 private val SeriesAccentGreen = Color(0xFFCAEA00)
 private val SeriesDarkBackground = Color(0xFF090909)
 private val SeriesSidebarBackground = Color(0xFF111111)
 private val SeriesCardBackground = Color(0xFF181818)
 
-private const val SERIES_FAVORITES_CATEGORY = "__FAVORITES__"
+/*
+ * Palette nuovo catalogo SERIE TV.
+ */
+private val SeriesMovieBackground = Color(0xFF050A12)
+private val SeriesMovieTopBar = Color(0xFF080E18)
+private val SeriesMovieSidebar = Color(0xFF080D16)
+private val SeriesMovieCard = Color(0xFF0C1420)
+private val SeriesBlue = Color(0xFF1677FF)
+private val SeriesTextSecondary = Color(0xFF8E9BAD)
+private val SeriesVpnGreen = Color(0xFF43E07B)
 
 @Composable
 fun SeriesContentScreen(
@@ -48,8 +63,12 @@ fun SeriesContentScreen(
     onInitialSeriesConsumed: () -> Unit = {},
     onBack: () -> Unit
 ) {
-    var selectedCategoryId by remember {
-        mutableStateOf<String?>(null)
+    /*
+     * Come FILM: niente "TUTTI".
+     * All'ingresso selezioniamo la prima categoria reale disponibile.
+     */
+    var selectedCategoryId by remember(categories) {
+        mutableStateOf(categories.firstOrNull()?.category_id)
     }
 
     var showFavorites by remember {
@@ -60,11 +79,12 @@ fun SeriesContentScreen(
         mutableStateOf<SeriesStream?>(initialSeries)
     }
 
-    var searchOpen by remember {
-        mutableStateOf(false)
-    }
-
-    var searchQuery by remember {
+    /*
+     * Ricerca globale sempre visibile.
+     * Non cambia la categoria selezionata: cancellando il testo
+     * si torna esattamente alla categoria/preferiti precedenti.
+     */
+    var globalSearchQuery by remember {
         mutableStateOf("")
     }
 
@@ -80,6 +100,10 @@ fun SeriesContentScreen(
         }
     }
 
+    /*
+     * Il dettaglio esistente resta invariato in questo primo step.
+     * loadSeriesInfo viene eseguito solo quando apriamo una serie.
+     */
     if (selectedSeries != null) {
         SeriesDetailScreen(
             series = selectedSeries!!,
@@ -97,7 +121,6 @@ fun SeriesContentScreen(
                 vm.clearSeriesInfo()
             }
         )
-
         return
     }
 
@@ -105,15 +128,14 @@ fun SeriesContentScreen(
         series,
         selectedCategoryId,
         showFavorites,
-        searchQuery,
+        globalSearchQuery,
         vm.favoriteSeriesIds
     ) {
         when {
-
-            searchQuery.isNotBlank() -> {
+            globalSearchQuery.isNotBlank() -> {
                 series.filter {
                     it.name?.contains(
-                        searchQuery,
+                        globalSearchQuery,
                         ignoreCase = true
                     ) == true
                 }
@@ -122,107 +144,139 @@ fun SeriesContentScreen(
             showFavorites -> {
                 series.filter {
                     val id = it.series_id
-                    id != null &&
-                        vm.isFavoriteSeries(id)
+                    id != null && vm.isFavoriteSeries(id)
                 }
             }
 
-            selectedCategoryId == null -> {
-                series
-            }
-
-            else -> {
+            selectedCategoryId != null -> {
                 series.filter {
                     it.category_id == selectedCategoryId
                 }
             }
+
+            else -> emptyList()
         }
     }
 
-    SeriesWithSidebar(
-        title = title,
+    val selectedCategoryName = remember(
+        categories,
+        selectedCategoryId,
+        showFavorites,
+        globalSearchQuery
+    ) {
+        when {
+            globalSearchQuery.isNotBlank() -> "RISULTATI"
+            showFavorites -> "PREFERITI"
+            else -> categories
+                .firstOrNull {
+                    it.category_id == selectedCategoryId
+                }
+                ?.category_name
+                ?.uppercase()
+                ?: "SERIE TV"
+        }
+    }
+
+    SeriesCatalogLayout(
         categories = categories,
         selectedCategoryId = selectedCategoryId,
         showFavorites = showFavorites,
-
-        onCategorySelected = {
-            showFavorites = false
-            selectedCategoryId = it
-        },
-
-        onFavoritesSelected = {
-            showFavorites = true
-            selectedCategoryId = null
-        },
-
-        searchOpen = searchOpen,
-        searchQuery = searchQuery,
-
-        onSearchOpen = {
-            searchOpen = true
-        },
-
+        globalSearchQuery = globalSearchQuery,
+        selectedCategoryName = selectedCategoryName,
+        seriesCount = filteredSeries.size,
         onSearchQueryChange = {
-            searchQuery = it
+            globalSearchQuery = it
         },
-
-        onSearchClose = {
-            searchOpen = false
-            searchQuery = ""
+        onClearSearch = {
+            globalSearchQuery = ""
         },
-
+        onCategorySelected = { categoryId ->
+            globalSearchQuery = ""
+            showFavorites = false
+            selectedCategoryId = categoryId
+        },
+        onFavoritesSelected = {
+            globalSearchQuery = ""
+            showFavorites = true
+        },
         onBack = onBack
     ) {
-
-        if (
+        when {
             filteredSeries.isEmpty() &&
-            showFavorites &&
-            searchQuery.isBlank()
-        ) {
-            SeriesEmptyFavoritesMessage()
-        } else {
+                globalSearchQuery.isNotBlank() -> {
+                SeriesCatalogEmptyState(
+                    icon = "⌕",
+                    title = "Nessuna serie trovata",
+                    subtitle = "Prova con un altro titolo."
+                )
+            }
 
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(180.dp),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(20.dp),
-                horizontalArrangement =
-                    Arrangement.spacedBy(16.dp),
-                verticalArrangement =
-                    Arrangement.spacedBy(18.dp)
-            ) {
+            filteredSeries.isEmpty() && showFavorites -> {
+                SeriesCatalogEmptyState(
+                    icon = "★",
+                    title = "Nessun preferito",
+                    subtitle = "Tieni premuto su una serie per aggiungerla."
+                )
+            }
 
-                items(
-                    items = filteredSeries,
-                    key = {
-                        it.series_id
-                            ?: it.num
-                            ?: 0
-                    }
-                ) { item ->
+            filteredSeries.isEmpty() -> {
+                SeriesCatalogEmptyState(
+                    icon = "▣",
+                    title = "Nessuna serie disponibile",
+                    subtitle = "Questa categoria non contiene serie."
+                )
+            }
 
-                    SeriesCard(
-                        series = item,
-
-                        favorite =
-                            item.series_id?.let {
-                                vm.isFavoriteSeries(it)
-                            } == true,
-
-                        onClick = {
-                            selectedSeries = item
-
-                            item.series_id?.let {
-                                vm.loadSeriesInfo(it)
-                            }
-                        },
-
-                        onLongClick = {
-                            item.series_id?.let {
-                                vm.toggleFavoriteSeries(it)
-                            }
+            else -> {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(
+                        minSize = 145.dp
+                    ),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 22.dp,
+                        end = 22.dp,
+                        top = 6.dp,
+                        bottom = 24.dp
+                    ),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(16.dp),
+                    verticalArrangement =
+                        Arrangement.spacedBy(22.dp)
+                ) {
+                    items(
+                        items = filteredSeries,
+                        key = {
+                            it.series_id
+                                ?: it.num
+                                ?: it.name
+                                ?: ""
                         }
-                    )
+                    ) { item ->
+                        SeriesPosterCard(
+                            series = item,
+                            favorite =
+                                item.series_id?.let {
+                                    vm.isFavoriteSeries(it)
+                                } == true,
+                            onClick = {
+                                /*
+                                 * Nessun caricamento durante focus/scroll.
+                                 * La richiesta parte soltanto al click.
+                                 */
+                                selectedSeries = item
+
+                                item.series_id?.let {
+                                    vm.loadSeriesInfo(it)
+                                }
+                            },
+                            onLongClick = {
+                                item.series_id?.let {
+                                    vm.toggleFavoriteSeries(it)
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -230,185 +284,208 @@ fun SeriesContentScreen(
 }
 
 @Composable
-private fun SeriesEmptyFavoritesMessage() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-
-        Column(
-            horizontalAlignment =
-                Alignment.CenterHorizontally
-        ) {
-
-            Text(
-                text = "⭐",
-                fontSize = 42.sp
-            )
-
-            Spacer(
-                modifier = Modifier.height(12.dp)
-            )
-
-            Text(
-                text = "Nessun preferito aggiunto",
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(
-                modifier = Modifier.height(6.dp)
-            )
-
-            Text(
-                text =
-                    "Tieni premuto su una serie per aggiungerla.",
-                color = Color.Gray,
-                fontSize = 14.sp
-            )
-        }
-    }
-}
-
-@Composable
-private fun SeriesWithSidebar(
-    title: String,
+private fun SeriesCatalogLayout(
     categories: List<Category>,
     selectedCategoryId: String?,
     showFavorites: Boolean,
+    globalSearchQuery: String,
+    selectedCategoryName: String,
+    seriesCount: Int,
+    onSearchQueryChange: (String) -> Unit,
+    onClearSearch: () -> Unit,
     onCategorySelected: (String?) -> Unit,
     onFavoritesSelected: () -> Unit,
-    searchOpen: Boolean,
-    searchQuery: String,
-    onSearchOpen: () -> Unit,
-    onSearchQueryChange: (String) -> Unit,
-    onSearchClose: () -> Unit,
     onBack: () -> Unit,
     content: @Composable () -> Unit
 ) {
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(SeriesDarkBackground)
+            .background(SeriesMovieBackground)
     ) {
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
-                .background(Color(0xFF101010)),
-            verticalAlignment =
-                Alignment.CenterVertically
+                .height(76.dp)
+                .background(SeriesMovieTopBar)
+                .padding(
+                    start = 14.dp,
+                    end = 24.dp
+                ),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-
-            TextButton(
-                onClick = onBack
+            Surface(
+                onClick = onBack,
+                modifier = Modifier.size(46.dp),
+                shape = RoundedCornerShape(23.dp),
+                color = Color(0xFF111A27)
             ) {
-
-                Text(
-                    text = "‹",
-                    color = SeriesAccentGreen,
-                    fontSize = 34.sp
-                )
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "‹",
+                        color = Color.White,
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Light
+                    )
+                }
             }
 
-            if (searchOpen) {
+            Spacer(Modifier.width(16.dp))
 
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange =
-                        onSearchQueryChange,
+            Text(
+                text = "XTREAM PLAYER",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(
-                            vertical = 8.dp,
-                            horizontal = 12.dp
-                        ),
+            Spacer(Modifier.width(10.dp))
 
-                    singleLine = true,
-
-                    placeholder = {
-                        Text(
-                            text = "Cerca...",
-                            color = Color.Gray
-                        )
-                    },
-
-                    colors =
-                        OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor =
-                                SeriesAccentGreen,
-                            unfocusedBorderColor =
-                                Color.DarkGray,
-                            focusedTextColor =
-                                Color.White,
-                            unfocusedTextColor =
-                                Color.White,
-                            cursorColor =
-                                SeriesAccentGreen
-                        )
-                )
-
-                TextButton(
-                    onClick = onSearchClose
-                ) {
-
-                    Text(
-                        text = "✕",
-                        color = Color.White,
-                        fontSize = 20.sp
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(22.dp)
+                    .background(
+                        Color.White.copy(alpha = 0.22f)
                     )
-                }
+            )
 
-            } else {
+            Spacer(Modifier.width(10.dp))
 
-                Text(
-                    text = title,
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
+            Text(
+                text = "SERIE TV",
+                color = SeriesBlue,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-                TextButton(
-                    onClick = onSearchOpen
-                ) {
+            Spacer(Modifier.width(34.dp))
 
+            OutlinedTextField(
+                value = globalSearchQuery,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                singleLine = true,
+                leadingIcon = {
                     Text(
                         text = "⌕",
-                        color = Color.White,
-                        fontSize = 28.sp
+                        color = SeriesTextSecondary,
+                        fontSize = 24.sp
                     )
-                }
+                },
+                trailingIcon = {
+                    if (globalSearchQuery.isNotBlank()) {
+                        TextButton(
+                            onClick = onClearSearch
+                        ) {
+                            Text(
+                                text = "✕",
+                                color = Color.White,
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
+                },
+                placeholder = {
+                    Text(
+                        text = "Cerca in tutte le serie…",
+                        color = SeriesTextSecondary,
+                        fontSize = 14.sp
+                    )
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = SeriesBlue,
+                    unfocusedBorderColor = Color(0xFF26364B),
+                    focusedContainerColor = Color(0xFF0B1320),
+                    unfocusedContainerColor = Color(0xFF0B1320),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = SeriesBlue
+                ),
+                shape = RoundedCornerShape(14.dp)
+            )
+
+            Spacer(Modifier.width(28.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(
+                            SeriesVpnGreen,
+                            RoundedCornerShape(4.dp)
+                        )
+                )
+
+                Spacer(Modifier.width(8.dp))
+
+                Text(
+                    text = "VPN ATTIVA",
+                    color = SeriesVpnGreen,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
 
         Row(
             modifier = Modifier.fillMaxSize()
         ) {
-
             SeriesCategorySidebar(
                 categories = categories,
-                selectedCategoryId =
-                    selectedCategoryId,
+                selectedCategoryId = selectedCategoryId,
                 showFavorites = showFavorites,
-
-                onCategorySelected =
-                    onCategorySelected,
-
-                onFavoritesSelected =
-                    onFavoritesSelected
+                onCategorySelected = onCategorySelected,
+                onFavoritesSelected = onFavoritesSelected
             )
 
-            Box(
+            Column(
                 modifier = Modifier
-                    .fillMaxSize()
                     .weight(1f)
+                    .fillMaxHeight()
             ) {
-                content()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(72.dp)
+                        .padding(
+                            start = 22.dp,
+                            end = 22.dp
+                        ),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = selectedCategoryName,
+                        color = Color.White,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(Modifier.width(12.dp))
+
+                    Text(
+                        text = "$seriesCount serie",
+                        color = SeriesTextSecondary,
+                        fontSize = 14.sp
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f)
+                ) {
+                    content()
+                }
             }
         }
     }
@@ -422,45 +499,24 @@ private fun SeriesCategorySidebar(
     onCategorySelected: (String?) -> Unit,
     onFavoritesSelected: () -> Unit
 ) {
-
-    androidx.compose.foundation.lazy.LazyColumn(
+    LazyColumn(
         modifier = Modifier
-            .width(230.dp)
+            .width(220.dp)
             .fillMaxHeight()
-            .background(
-                SeriesSidebarBackground
-            ),
-
+            .background(SeriesMovieSidebar),
         contentPadding = PaddingValues(
-            vertical = 14.dp,
-            horizontal = 10.dp
-        )
+            start = 12.dp,
+            end = 12.dp,
+            top = 18.dp,
+            bottom = 18.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
-
         item {
-
             SeriesSidebarItem(
-                text = "TUTTI",
-
-                selected =
-                    !showFavorites &&
-                        selectedCategoryId == null,
-
-                onClick = {
-                    onCategorySelected(null)
-                }
-            )
-        }
-
-        item {
-
-            SeriesSidebarItem(
-                text = "⭐ PREFERITI",
-
+                text = "★  PREFERITI",
                 selected = showFavorites,
-
-                onClick =
-                    onFavoritesSelected
+                onClick = onFavoritesSelected
             )
         }
 
@@ -468,24 +524,19 @@ private fun SeriesCategorySidebar(
             items = categories,
             key = {
                 it.category_id
-                    ?: it.category_name.orEmpty()
+                    ?: it.category_name
+                    ?: ""
             }
         ) { category ->
+            val categoryId = category.category_id
 
             SeriesSidebarItem(
-                text =
-                    category.category_name
-                        ?: "Categoria",
-
+                text = category.category_name ?: "Categoria",
                 selected =
                     !showFavorites &&
-                        selectedCategoryId ==
-                            category.category_id,
-
+                        selectedCategoryId == categoryId,
                 onClick = {
-                    onCategorySelected(
-                        category.category_id
-                    )
+                    onCategorySelected(categoryId)
                 }
             )
         }
@@ -498,144 +549,164 @@ private fun SeriesSidebarItem(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-
-    val background =
-        if (selected) {
-            SeriesAccentGreen
-        } else {
-            Color.Transparent
-        }
-
-    val textColor =
-        if (selected) {
-            Color.Black
-        } else {
-            Color.White
-        }
-
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 3.dp)
-            .clip(
-                RoundedCornerShape(10.dp)
-            ),
-
-        color = background,
+        modifier = Modifier.fillMaxWidth(),
+        color =
+            if (selected) {
+                SeriesBlue
+            } else {
+                Color.Transparent
+            },
+        shape = RoundedCornerShape(10.dp),
         onClick = onClick
     ) {
-
         Text(
             text = text,
-            color = textColor,
+            color = Color.White,
             fontSize = 14.sp,
-
             fontWeight =
                 if (selected) {
                     FontWeight.Bold
                 } else {
-                    FontWeight.Normal
+                    FontWeight.Medium
                 },
-
             modifier = Modifier.padding(
                 horizontal = 14.dp,
-                vertical = 12.dp
+                vertical = 11.dp
             ),
-
             maxLines = 1,
-            overflow =
-                TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun SeriesCard(
+private fun SeriesPosterCard(
     series: SeriesStream,
     favorite: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(270.dp)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
-            ),
-
-        colors = CardDefaults.cardColors(
-            containerColor =
-                SeriesCardBackground
-        ),
-
-        shape =
-            RoundedCornerShape(12.dp)
-    ) {
-
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-
-            AsyncImage(
-                model = series.cover,
-                contentDescription =
-                    series.name,
-
-                modifier =
-                    Modifier.fillMaxSize(),
-
-                contentScale =
-                    ContentScale.Crop
             )
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.67f)
+                .border(
+                    width = 1.dp,
+                    color =
+                        if (favorite) {
+                            SeriesBlue
+                        } else {
+                            Color.White.copy(alpha = 0.08f)
+                        },
+                    shape = RoundedCornerShape(12.dp)
+                ),
+            colors = CardDefaults.cardColors(
+                containerColor = SeriesMovieCard
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                AsyncImage(
+                    model = series.cover,
+                    contentDescription = series.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
 
-            if (favorite) {
+                if (favorite) {
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp),
+                        color = Color.Black.copy(alpha = 0.72f),
+                        shape = RoundedCornerShape(18.dp)
+                    ) {
+                        Text(
+                            text = "★",
+                            color = SeriesBlue,
+                            fontSize = 18.sp,
+                            modifier = Modifier.padding(
+                                horizontal = 8.dp,
+                                vertical = 4.dp
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            text = series.name ?: "Serie TV",
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        series.rating
+            ?.takeIf { it.isNotBlank() }
+            ?.let { rating ->
+                Spacer(Modifier.height(3.dp))
 
                 Text(
-                    text = "★",
-                    color = SeriesAccentGreen,
-                    fontSize = 22.sp,
-
-                    modifier = Modifier
-                        .align(
-                            Alignment.TopEnd
-                        )
-                        .padding(8.dp)
+                    text = "★ $rating",
+                    color = SeriesTextSecondary,
+                    fontSize = 12.sp,
+                    maxLines = 1
                 )
             }
+    }
+}
+
+@Composable
+private fun SeriesCatalogEmptyState(
+    icon: String,
+    title: String,
+    subtitle: String
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = icon,
+                color = SeriesBlue,
+                fontSize = 38.sp
+            )
+
+            Spacer(Modifier.height(12.dp))
 
             Text(
-                text =
-                    series.name
-                        ?: "Serie TV",
-
+                text = title,
                 color = Color.White,
-                fontSize = 14.sp,
-                fontWeight =
-                    FontWeight.SemiBold,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold
+            )
 
-                maxLines = 2,
+            Spacer(Modifier.height(6.dp))
 
-                overflow =
-                    TextOverflow.Ellipsis,
-
-                modifier = Modifier
-                    .align(
-                        Alignment.BottomStart
-                    )
-                    .fillMaxWidth()
-                    .background(
-                        Color.Black.copy(
-                            alpha = 0.78f
-                        )
-                    )
-                    .padding(
-                        horizontal = 10.dp,
-                        vertical = 8.dp
-                    )
+            Text(
+                text = subtitle,
+                color = SeriesTextSecondary,
+                fontSize = 13.sp
             )
         }
     }
