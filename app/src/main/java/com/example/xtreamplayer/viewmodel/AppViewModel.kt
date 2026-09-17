@@ -60,6 +60,42 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var loadingSeriesInfo by mutableStateOf(false)
         private set
 
+    /*
+     * VOD INFO
+     *
+     * Contiene i dettagli completi del film aperto
+     * nella schermata Dettaglio Film.
+     *
+     * La richiesta viene effettuata soltanto dopo
+     * il click/OK sul poster.
+     */
+    var selectedVodInfo by mutableStateOf<VodInfoResponse?>(null)
+        private set
+
+    var loadingVodInfo by mutableStateOf(false)
+        private set
+
+    var vodInfoError by mutableStateOf<String?>(null)
+        private set
+
+    /*
+     * Cache in memoria dei dettagli Film.
+     *
+     * Se l'utente apre nuovamente un film già caricato,
+     * evitiamo una nuova chiamata HTTP.
+     */
+    private val vodInfoCache =
+        mutableMapOf<Int, VodInfoResponse>()
+
+    /*
+     * ID del film attualmente richiesto.
+     *
+     * Serve a impedire che una risposta HTTP più lenta
+     * aggiorni la UI dopo che l'utente ha già aperto
+     * un altro film.
+     */
+    private var selectedVodStreamId: Int? = null
+
     var favoriteLiveIds by mutableStateOf<Set<Int>>(emptySet())
         private set
 
@@ -279,6 +315,104 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /*
+     * Carica i dettagli completi del singolo film.
+     *
+     * Questa funzione NON viene chiamata mentre l'utente
+     * scorre la griglia. Verrà utilizzata soltanto quando
+     * viene aperta la schermata Dettaglio Film.
+     */
+    fun loadVodInfo(
+        streamId: Int
+    ) {
+        val c = credentials ?: return
+
+        selectedVodStreamId = streamId
+        vodInfoError = null
+
+        val cached =
+            vodInfoCache[streamId]
+
+        if (cached != null) {
+            selectedVodInfo = cached
+            loadingVodInfo = false
+            return
+        }
+
+        selectedVodInfo = null
+        loadingVodInfo = true
+
+        viewModelScope.launch {
+            try {
+                val api =
+                    XtreamApiFactory.create(
+                        c.serverUrl
+                    )
+
+                val response =
+                    api.getVodInfo(
+                        username = c.username,
+                        password = c.password,
+                        vodId = streamId
+                    )
+
+                vodInfoCache[streamId] =
+                    response
+
+                /*
+                 * Se nel frattempo è stato aperto un altro film,
+                 * conserviamo comunque il risultato nella cache
+                 * ma non aggiorniamo la schermata corrente.
+                 */
+                if (
+                    selectedVodStreamId ==
+                    streamId
+                ) {
+                    selectedVodInfo =
+                        response
+                }
+
+            } catch (e: Exception) {
+
+                if (
+                    selectedVodStreamId ==
+                    streamId
+                ) {
+                    selectedVodInfo = null
+
+                    vodInfoError =
+                        e.message
+                            ?: "Dettagli film non disponibili."
+                }
+
+            } finally {
+
+                if (
+                    selectedVodStreamId ==
+                    streamId
+                ) {
+                    loadingVodInfo = false
+                }
+            }
+        }
+    }
+
+    fun clearVodInfo() {
+        selectedVodStreamId = null
+        selectedVodInfo = null
+        loadingVodInfo = false
+        vodInfoError = null
+    }
+
+    /*
+     * Disponibile se in futuro vorremo forzare
+     * il refresh dei dettagli Film.
+     */
+    fun clearVodInfoCache() {
+        vodInfoCache.clear()
+        clearVodInfo()
+    }
+
+    /*
      * Carica l'EPG breve del singolo canale Live.
      *
      * Se il canale è già presente nella cache, i dati vengono
@@ -326,12 +460,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 epgCache[streamId] =
                     listings
 
-                /*
-                 * L'utente potrebbe aver selezionato un altro
-                 * canale mentre la richiesta era in corso.
-                 * Aggiorniamo la UI solo se siamo ancora sullo
-                 * stesso stream.
-                 */
                 if (
                     selectedEpgStreamId ==
                     streamId
@@ -371,10 +499,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         epgError = null
     }
 
-    /*
-     * Permette di forzare in futuro un aggiornamento EPG.
-     * Per ora non viene chiamato automaticamente dalla UI.
-     */
     fun clearEpgCache() {
         epgCache.clear()
         clearEpg()
@@ -536,6 +660,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         series = emptyList()
 
         selectedSeriesInfo = null
+
+        vodInfoCache.clear()
+        clearVodInfo()
 
         epgCache.clear()
         clearEpg()
