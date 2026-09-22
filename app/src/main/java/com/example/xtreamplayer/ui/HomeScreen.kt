@@ -1,6 +1,7 @@
 package com.example.xtreamplayer.ui
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -65,6 +66,30 @@ fun HomeScreen(
 
     var currentSection by remember {
         mutableStateOf(HomeSection.HOME)
+    }
+
+    /*
+     * BACK DEL TELECOMANDO:
+     * dalle sezioni interne torna alla HOME invece di chiudere l'app.
+     * Sulla HOME il BACK resta libero e Android può uscire normalmente.
+     */
+    BackHandler(
+        enabled = currentSection != HomeSection.HOME
+    ) {
+        when (currentSection) {
+            HomeSection.LIVE -> {
+                onInitialLiveConsumed()
+                currentSection = HomeSection.HOME
+            }
+
+            HomeSection.MOVIES,
+            HomeSection.SERIES,
+            HomeSection.SETTINGS -> {
+                currentSection = HomeSection.HOME
+            }
+
+            HomeSection.HOME -> Unit
+        }
     }
 
     LaunchedEffect(
