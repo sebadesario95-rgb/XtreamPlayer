@@ -1,5 +1,6 @@
 package com.example.xtreamplayer.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -1597,6 +1598,15 @@ private fun MovieDetailScreen(
     onPlay: (String) -> Unit,
     onBack: () -> Unit
 ) {
+    /*
+     * BACK fisico del telecomando:
+     * dal dettaglio torna al catalogo FILM.
+     * Questo handler interno ha priorità su quello generale di HomeScreen.
+     */
+    BackHandler {
+        onBack()
+    }
+
     val streamId = movie.stream_id
 
     LaunchedEffect(streamId) {
