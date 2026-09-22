@@ -24,6 +24,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var loggedIn by mutableStateOf(false)
         private set
 
+    var editingAccount by mutableStateOf(false)
+        private set
+
     var loading by mutableStateOf(false)
         private set
 
@@ -181,6 +184,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 }
 
                 loggedIn = true
+                editingAccount = false
 
                 loadCatalog(
                     api,
@@ -644,8 +648,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             .apply()
     }
 
+    fun beginAccountEdit() {
+        error = null
+        editingAccount = true
+        loggedIn = false
+    }
+
     fun logout() {
         store.clear()
+
+        editingAccount = false
 
         credentials = null
         auth = null
