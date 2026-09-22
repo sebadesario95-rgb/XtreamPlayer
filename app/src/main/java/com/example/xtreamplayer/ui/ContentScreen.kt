@@ -1549,6 +1549,47 @@ private fun LiveCard(
  * DETTAGLIO FILM CINEMATOGRAFICO
  * ============================================================
  */
+
+@Composable
+private fun MovieDetailFocusSurface(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    shape: RoundedCornerShape = RoundedCornerShape(10.dp),
+    selectedColor: Color = MovieBlue,
+    normalColor: Color = Color.Black.copy(alpha = 0.38f),
+    content: @Composable BoxScope.() -> Unit
+) {
+    var focused by remember {
+        mutableStateOf(false)
+    }
+
+    Surface(
+        onClick = onClick,
+        modifier = modifier
+            .scale(if (focused) 1.06f else 1f)
+            .onFocusChanged {
+                focused = it.isFocused
+            }
+            .border(
+                width = if (focused) 3.dp else 1.dp,
+                color = if (focused) {
+                    MovieBlue
+                } else {
+                    Color.White.copy(alpha = 0.18f)
+                },
+                shape = shape
+            ),
+        shape = shape,
+        color = if (focused) selectedColor else normalColor
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+            content = content
+        )
+    }
+}
+
 @Composable
 private fun MovieDetailScreen(
     movie: VodStream,
@@ -1641,23 +1682,19 @@ private fun MovieDetailScreen(
                     .padding(start = 14.dp, end = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
+                MovieDetailFocusSurface(
                     onClick = onBack,
                     modifier = Modifier.size(46.dp),
                     shape = RoundedCornerShape(23.dp),
-                    color = Color(0xFF111A27)
+                    selectedColor = MovieBlue,
+                    normalColor = Color(0xFF111A27)
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "‹",
-                            color = Color.White,
-                            fontSize = 34.sp,
-                            fontWeight = FontWeight.Light
-                        )
-                    }
+                    Text(
+                        text = "‹",
+                        color = Color.White,
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Light
+                    )
                 }
 
                 Spacer(modifier = Modifier.width(16.dp))
@@ -1780,50 +1817,59 @@ private fun MovieDetailScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        Button(
+                        MovieDetailFocusSurface(
                             onClick = {
-                                val id = movie.stream_id ?: return@Button
-                                val extension = movieData?.container_extension
-                                    ?.takeIf { it.isNotBlank() }
-                                    ?: movie.container_extension
+                                val id = movie.stream_id
+                                    ?: return@MovieDetailFocusSurface
+
+                                val extension =
+                                    movieData?.container_extension
+                                        ?.takeIf { it.isNotBlank() }
+                                        ?: movie.container_extension
 
                                 val url = vm.streamUrl(
                                     type = "movie",
                                     id = id,
                                     extension = extension
-                                ) ?: return@Button
+                                ) ?: return@MovieDetailFocusSurface
 
                                 onPlay(url)
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MovieBlue,
-                                contentColor = Color.White
-                            ),
+                            modifier = Modifier
+                                .width(178.dp)
+                                .height(48.dp),
                             shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 13.dp)
+                            selectedColor = MovieBlue,
+                            normalColor = MovieBlue.copy(alpha = 0.78f)
                         ) {
                             Text(
                                 text = "▶  GUARDA ORA",
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
                         }
 
                         if (streamId != null) {
-                            Surface(
-                                onClick = { vm.toggleFavoriteMovie(streamId) },
-                                color = Color.Black.copy(alpha = 0.38f),
+                            MovieDetailFocusSurface(
+                                onClick = {
+                                    vm.toggleFavoriteMovie(streamId)
+                                },
+                                modifier = Modifier
+                                    .width(56.dp)
+                                    .height(48.dp),
                                 shape = RoundedCornerShape(10.dp),
-                                border = androidx.compose.foundation.BorderStroke(
-                                    1.dp,
-                                    if (favorite) MovieBlue else Color.White.copy(alpha = 0.24f)
-                                )
+                                selectedColor = MovieBlueSoft,
+                                normalColor = Color.Black.copy(alpha = 0.38f)
                             ) {
                                 Text(
                                     text = if (favorite) "★" else "☆",
-                                    color = if (favorite) MovieBlue else Color.White,
-                                    fontSize = 22.sp,
-                                    modifier = Modifier.padding(horizontal = 17.dp, vertical = 10.dp)
+                                    color = if (favorite) {
+                                        MovieBlue
+                                    } else {
+                                        Color.White
+                                    },
+                                    fontSize = 22.sp
                                 )
                             }
                         }
