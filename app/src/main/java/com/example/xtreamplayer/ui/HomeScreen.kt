@@ -640,16 +640,25 @@ private fun SettingsAccountScreen(
                     .fillMaxSize()
                     .padding(horizontal = 20.dp, vertical = 24.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    SettingsTvButton(
+                        title = "‹",
+                        width = 48.dp,
+                        onClick = onBack
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(46.dp)
                             .background(
                                 Brush.radialGradient(
                                     colors = listOf(
-                                        HomeBlueLight.copy(alpha = 0.42f),
+                                        HomeBlueLight.copy(alpha = 0.46f),
                                         Color.Transparent
                                     )
                                 ),
@@ -660,32 +669,31 @@ private fun SettingsAccountScreen(
                         Text(
                             text = "F",
                             color = HomeBlueLight,
-                            fontSize = 30.sp,
+                            fontSize = 29.sp,
                             fontWeight = FontWeight.Black
                         )
                     }
 
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.height(3.dp))
 
-                    Column {
-                        Text(
-                            text = "FUTURE",
-                            color = Color.White,
-                            fontSize = 19.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 0.8.sp
-                        )
-                        Text(
-                            text = "S M A R T",
-                            color = HomeBlueLight,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.5.sp
-                        )
-                    }
+                    Text(
+                        text = "FUTURE",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 0.8.sp
+                    )
+
+                    Text(
+                        text = "S M A R T",
+                        color = HomeBlueLight,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.5.sp
+                    )
                 }
 
-                Spacer(Modifier.height(34.dp))
+                Spacer(Modifier.height(20.dp))
 
                 SettingsSidebarItem(
                     icon = "⌂",
@@ -759,14 +767,6 @@ private fun SettingsAccountScreen(
                     .padding(start = 30.dp, top = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                SettingsTvButton(
-                    title = "‹",
-                    width = 48.dp,
-                    onClick = onBack
-                )
-
-                Spacer(Modifier.width(18.dp))
-
                 Text(
                     text = "⚙  IMPOSTAZIONI  ›  ACCOUNT",
                     color = Color.White,
