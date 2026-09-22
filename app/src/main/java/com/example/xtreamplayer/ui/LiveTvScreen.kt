@@ -19,7 +19,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -496,23 +502,55 @@ private fun GlobalLiveSearchField(
     value: String,
     onValueChange: (String) -> Unit
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    var containerFocused by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf(false) }
+
+    val textFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.03f else 1f,
+        targetValue = if (containerFocused || editing) 1.03f else 1f,
         label = "globalLiveSearchFocusScale"
     )
+
+    LaunchedEffect(editing) {
+        if (editing) {
+            textFocusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
 
     Surface(
         modifier = Modifier
             .width(230.dp)
             .height(38.dp)
             .scale(scale)
-            .onFocusChanged { isFocused = it.isFocused },
-        color = if (isFocused) Color(0xFF102942) else Color(0xFF07101A),
+            .onFocusChanged {
+                containerFocused = it.isFocused
+                if (!it.hasFocus) {
+                    editing = false
+                }
+            }
+            .onKeyEvent { event ->
+                if (
+                    !editing &&
+                    event.type == KeyEventType.KeyUp &&
+                    (event.key == Key.Enter ||
+                     event.key == Key.NumPadEnter ||
+                     event.key == Key.DirectionCenter)
+                ) {
+                    editing = true
+                    true
+                } else {
+                    false
+                }
+            }
+            .focusable(),
+        color = if (containerFocused || editing) Color(0xFF102942) else Color(0xFF07101A),
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(
-            if (isFocused) 3.dp else 1.dp,
-            if (isFocused) LiveBlueLight else LiveBorder.copy(alpha = 0.55f)
+            if (containerFocused || editing) 3.dp else 1.dp,
+            if (containerFocused || editing) LiveBlueLight else LiveBorder.copy(alpha = 0.55f)
         )
     ) {
         Row(
@@ -523,24 +561,40 @@ private fun GlobalLiveSearchField(
         ) {
             Text(
                 text = "⌕",
-                color = if (isFocused || value.isNotBlank()) LiveBlueLight else LiveMuted,
+                color = if (containerFocused || editing || value.isNotBlank()) LiveBlueLight else LiveMuted,
                 fontSize = 20.sp
             )
+
             Spacer(Modifier.width(8.dp))
+
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(textFocusRequester)
+                    .onFocusChanged {
+                        if (!it.isFocused && editing) {
+                            editing = false
+                        }
+                    },
+                enabled = editing,
                 singleLine = true,
-                textStyle = TextStyle(color = Color.White, fontSize = 12.sp),
+                textStyle = TextStyle(
+                    color = Color.White,
+                    fontSize = 12.sp
+                ),
                 cursorBrush = SolidColor(LiveBlue),
                 decorationBox = { innerTextField ->
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (value.isEmpty()) {
                             Text(
                                 text = "Cerca in tutti i canali...",
-                                color = if (isFocused) Color.White.copy(alpha = 0.78f)
-                                else LiveMuted.copy(alpha = 0.7f),
+                                color = if (containerFocused || editing) {
+                                    Color.White.copy(alpha = 0.78f)
+                                } else {
+                                    LiveMuted.copy(alpha = 0.7f)
+                                },
                                 fontSize = 11.sp
                             )
                         }
@@ -548,11 +602,14 @@ private fun GlobalLiveSearchField(
                     }
                 }
             )
+
             if (value.isNotEmpty()) {
                 Text(
                     text = "×",
-                    modifier = Modifier.clickable { onValueChange("") }.padding(4.dp),
-                    color = if (isFocused) LiveBlueLight else LiveMuted,
+                    modifier = Modifier
+                        .clickable { onValueChange("") }
+                        .padding(4.dp),
+                    color = if (containerFocused || editing) LiveBlueLight else LiveMuted,
                     fontSize = 18.sp
                 )
             }
@@ -866,49 +923,99 @@ private fun LiveSearchField(
     value: String,
     onValueChange: (String) -> Unit
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    var containerFocused by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf(false) }
+
+    val textFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.025f else 1f,
+        targetValue = if (containerFocused || editing) 1.025f else 1f,
         label = "liveSearchFocusScale"
     )
+
+    LaunchedEffect(editing) {
+        if (editing) {
+            textFocusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(38.dp)
             .scale(scale)
-            .onFocusChanged { isFocused = it.isFocused },
-        color = if (isFocused) Color(0xFF102942) else Color(0xFF07101A),
+            .onFocusChanged {
+                containerFocused = it.isFocused
+                if (!it.hasFocus) {
+                    editing = false
+                }
+            }
+            .onKeyEvent { event ->
+                if (
+                    !editing &&
+                    event.type == KeyEventType.KeyUp &&
+                    (event.key == Key.Enter ||
+                     event.key == Key.NumPadEnter ||
+                     event.key == Key.DirectionCenter)
+                ) {
+                    editing = true
+                    true
+                } else {
+                    false
+                }
+            }
+            .focusable(),
+        color = if (containerFocused || editing) Color(0xFF102942) else Color(0xFF07101A),
         shape = RoundedCornerShape(10.dp),
         border = BorderStroke(
-            if (isFocused) 3.dp else 1.dp,
-            if (isFocused) LiveBlueLight else LiveBorder.copy(alpha = 0.55f)
+            if (containerFocused || editing) 3.dp else 1.dp,
+            if (containerFocused || editing) LiveBlueLight else LiveBorder.copy(alpha = 0.55f)
         )
     ) {
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 11.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 11.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "⌕",
-                color = if (isFocused) LiveBlueLight else LiveMuted,
+                color = if (containerFocused || editing) LiveBlueLight else LiveMuted,
                 fontSize = 20.sp
             )
+
             Spacer(Modifier.width(8.dp))
+
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(textFocusRequester)
+                    .onFocusChanged {
+                        if (!it.isFocused && editing) {
+                            editing = false
+                        }
+                    },
+                enabled = editing,
                 singleLine = true,
-                textStyle = TextStyle(color = Color.White, fontSize = 12.sp),
+                textStyle = TextStyle(
+                    color = Color.White,
+                    fontSize = 12.sp
+                ),
                 cursorBrush = SolidColor(LiveBlue),
                 decorationBox = { innerTextField ->
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (value.isEmpty()) {
                             Text(
                                 text = "Cerca canale...",
-                                color = if (isFocused) Color.White.copy(alpha = 0.78f)
-                                else LiveMuted.copy(alpha = 0.7f),
+                                color = if (containerFocused || editing) {
+                                    Color.White.copy(alpha = 0.78f)
+                                } else {
+                                    LiveMuted.copy(alpha = 0.7f)
+                                },
                                 fontSize = 12.sp
                             )
                         }
@@ -916,11 +1023,14 @@ private fun LiveSearchField(
                     }
                 }
             )
+
             if (value.isNotEmpty()) {
                 Text(
                     text = "×",
-                    modifier = Modifier.clickable { onValueChange("") }.padding(4.dp),
-                    color = if (isFocused) LiveBlueLight else LiveMuted,
+                    modifier = Modifier
+                        .clickable { onValueChange("") }
+                        .padding(4.dp),
+                    color = if (containerFocused || editing) LiveBlueLight else LiveMuted,
                     fontSize = 18.sp
                 )
             }
