@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -13,11 +14,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -567,76 +579,18 @@ private fun MovieCatalogLayout(
             )
 
             /*
-             * RICERCA GLOBALE
+             * RICERCA GLOBALE TV-FRIENDLY.
+             *
+             * D-pad: il campo riceve solo il focus e si illumina.
+             * OK/ENTER: entra in modalità scrittura e apre la tastiera.
              */
-            OutlinedTextField(
+            MovieSearchField(
                 value = globalSearchQuery,
-                onValueChange =
-                    onSearchQueryChange,
+                onValueChange = onSearchQueryChange,
+                onClearSearch = onClearSearch,
                 modifier = Modifier
                     .weight(1f)
-                    .height(52.dp),
-                singleLine = true,
-                leadingIcon = {
-                    Text(
-                        text = "⌕",
-                        color = MovieTextSecondary,
-                        fontSize = 24.sp
-                    )
-                },
-                trailingIcon = {
-                    if (
-                        globalSearchQuery
-                            .isNotBlank()
-                    ) {
-                        TextButton(
-                            onClick =
-                                onClearSearch
-                        ) {
-                            Text(
-                                text = "✕",
-                                color =
-                                    Color.White,
-                                fontSize = 16.sp
-                            )
-                        }
-                    }
-                },
-                placeholder = {
-                    Text(
-                        text =
-                            "Cerca in tutti i film…",
-                        color =
-                            MovieTextSecondary,
-                        fontSize = 14.sp
-                    )
-                },
-                colors =
-                    OutlinedTextFieldDefaults
-                        .colors(
-                            focusedBorderColor =
-                                MovieBlue,
-                            unfocusedBorderColor =
-                                Color(
-                                    0xFF26364B
-                                ),
-                            focusedContainerColor =
-                                Color(
-                                    0xFF0B1320
-                                ),
-                            unfocusedContainerColor =
-                                Color(
-                                    0xFF0B1320
-                                ),
-                            focusedTextColor =
-                                Color.White,
-                            unfocusedTextColor =
-                                Color.White,
-                            cursorColor =
-                                MovieBlue
-                        ),
-                shape =
-                    RoundedCornerShape(14.dp)
+                    .height(52.dp)
             )
 
             Spacer(
@@ -754,6 +708,115 @@ private fun MovieCatalogLayout(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun MovieSearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onClearSearch: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var focused by remember {
+        mutableStateOf(false)
+    }
+
+    var editing by remember {
+        mutableStateOf(false)
+    }
+
+    val focusRequester = remember {
+        FocusRequester()
+    }
+
+    val keyboardController =
+        LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(editing) {
+        if (editing) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier
+            .focusRequester(focusRequester)
+            .onFocusChanged {
+                focused = it.isFocused
+
+                if (!it.isFocused) {
+                    editing = false
+                    keyboardController?.hide()
+                }
+            }
+            .onKeyEvent { event ->
+                if (
+                    event.type == KeyEventType.KeyUp &&
+                    (
+                        event.key == Key.Enter ||
+                        event.key == Key.NumPadEnter ||
+                        event.key == Key.DirectionCenter
+                    )
+                ) {
+                    if (!editing) {
+                        editing = true
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            }
+            .border(
+                width = if (focused) 3.dp else 0.dp,
+                color = if (focused) MovieBlue else Color.Transparent,
+                shape = RoundedCornerShape(14.dp)
+            ),
+        readOnly = !editing,
+        singleLine = true,
+        leadingIcon = {
+            Text(
+                text = "⌕",
+                color = if (focused) MovieBlue else MovieTextSecondary,
+                fontSize = 24.sp
+            )
+        },
+        trailingIcon = {
+            if (value.isNotBlank()) {
+                TextButton(
+                    onClick = onClearSearch
+                ) {
+                    Text(
+                        text = "✕",
+                        color = Color.White,
+                        fontSize = 16.sp
+                    )
+                }
+            }
+        },
+        placeholder = {
+            Text(
+                text = "Cerca in tutti i film…",
+                color = MovieTextSecondary,
+                fontSize = 14.sp
+            )
+        },
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MovieBlue,
+            unfocusedBorderColor = Color(0xFF26364B),
+            focusedContainerColor = Color(0xFF0B1320),
+            unfocusedContainerColor = Color(0xFF0B1320),
+            focusedTextColor = Color.White,
+            unfocusedTextColor = Color.White,
+            cursorColor = MovieBlue
+        ),
+        shape = RoundedCornerShape(14.dp)
+    )
+}
+
 @Composable
 private fun MovieCategorySidebar(
     categories: List<Category>,
@@ -827,12 +890,26 @@ private fun MovieSidebarItem(
     selected: Boolean,
     onClick: () -> Unit
 ) {
+    var focused by remember {
+        mutableStateOf(false)
+    }
+
     Surface(
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .onFocusChanged {
+                focused = it.isFocused
+            }
+            .border(
+                width = if (focused) 3.dp else 0.dp,
+                color = if (focused) MovieBlue else Color.Transparent,
+                shape = RoundedCornerShape(10.dp)
+            ),
         color =
             if (selected) {
                 MovieBlue
+            } else if (focused) {
+                MovieBlueSoft.copy(alpha = 0.55f)
             } else {
                 Color.Transparent
             },
@@ -845,7 +922,7 @@ private fun MovieSidebarItem(
             color = Color.White,
             fontSize = 14.sp,
             fontWeight =
-                if (selected) {
+                if (selected || focused) {
                     FontWeight.Bold
                 } else {
                     FontWeight.Medium
@@ -869,13 +946,28 @@ private fun MoviePosterCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
+    var focused by remember {
+        mutableStateOf(false)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .scale(if (focused) 1.035f else 1f)
+            .onFocusChanged {
+                focused = it.isFocused
+            }
+            .border(
+                width = if (focused) 3.dp else 0.dp,
+                color = if (focused) MovieBlue else Color.Transparent,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .padding(if (focused) 3.dp else 0.dp)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
             )
+            .focusable()
     ) {
 
         Card(
