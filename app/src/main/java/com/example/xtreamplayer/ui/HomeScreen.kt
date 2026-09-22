@@ -1,14 +1,18 @@
 package com.example.xtreamplayer.ui
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -113,34 +117,34 @@ fun HomeScreen(
         }
 
         HomeSection.MOVIES -> {
-    MovieContentScreen(
-        title = "FILM",
-        categories = vm.movieCategories,
-        movies = vm.movies,
-        vm = vm,
+            MovieContentScreen(
+                title = "FILM",
+                categories = vm.movieCategories,
+                movies = vm.movies,
+                vm = vm,
 
-        onPlay = { url ->
-            onPlay(url)
-        },
+                onPlay = { url ->
+                    onPlay(url)
+                },
 
-        onMoviePlay = { url, movie ->
-            onMoviePlay(
-                url,
-                movie
+                onMoviePlay = { url, movie ->
+                    onMoviePlay(
+                        url,
+                        movie
+                    )
+                },
+
+                initialMovie = initialMovie,
+
+                onInitialMovieConsumed = {
+                    onInitialMovieConsumed()
+                },
+
+                onBack = {
+                    currentSection = HomeSection.HOME
+                }
             )
-        },
-
-        initialMovie = initialMovie,
-
-        onInitialMovieConsumed = {
-            onInitialMovieConsumed()
-        },
-
-        onBack = {
-            currentSection = HomeSection.HOME
         }
-    )
-}
 
         HomeSection.SERIES -> {
             SeriesContentScreen(
@@ -202,10 +206,6 @@ private fun HomeMainScreen(
 
         HomeBackgroundDecoration()
 
-        // -----------------------------------------
-        // LOGO - ALTO SINISTRA
-        // -----------------------------------------
-
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -246,10 +246,6 @@ private fun HomeMainScreen(
                 )
             }
         }
-
-        // -----------------------------------------
-        // VPN + OROLOGIO REALE
-        // -----------------------------------------
 
         Row(
             modifier = Modifier
@@ -335,10 +331,6 @@ private fun HomeMainScreen(
             )
         }
 
-        // -----------------------------------------
-        // TESTO CENTRALE
-        // -----------------------------------------
-
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -378,10 +370,6 @@ private fun HomeMainScreen(
             )
         }
 
-        // -----------------------------------------
-        // TRE CARD CENTRALI
-        // -----------------------------------------
-
         Row(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -414,10 +402,6 @@ private fun HomeMainScreen(
                 onClick = onSeriesClick
             )
         }
-
-        // -----------------------------------------
-        // SCADENZA - BASSO SINISTRA
-        // -----------------------------------------
 
         Column(
             modifier = Modifier
@@ -460,10 +444,6 @@ private fun HomeMainScreen(
             )
         }
 
-        // -----------------------------------------
-        // IMPOSTAZIONI + AGGIORNA
-        // -----------------------------------------
-
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -494,10 +474,6 @@ private fun HomeMainScreen(
                 }
             )
         }
-
-        // -----------------------------------------
-        // LOADING
-        // -----------------------------------------
 
         if (vm.loading) {
 
@@ -533,10 +509,6 @@ private fun HomeMainScreen(
             }
         }
 
-        // -----------------------------------------
-        // ERRORE
-        // -----------------------------------------
-
         vm.error?.let { error ->
 
             Surface(
@@ -571,8 +543,6 @@ private fun HomeBackgroundDecoration() {
         modifier = Modifier.fillMaxSize()
     ) {
 
-        // Bagliore blu sinistro
-
         Box(
             modifier = Modifier
                 .size(520.dp)
@@ -590,8 +560,6 @@ private fun HomeBackgroundDecoration() {
                 )
         )
 
-        // Bagliore blu destro
-
         Box(
             modifier = Modifier
                 .size(560.dp)
@@ -606,8 +574,6 @@ private fun HomeBackgroundDecoration() {
                     )
                 )
         )
-
-        // Fascia luminosa inferiore
 
         Box(
             modifier = Modifier
@@ -625,8 +591,6 @@ private fun HomeBackgroundDecoration() {
                     )
                 )
         )
-
-        // Linea blu decorativa
 
         Box(
             modifier = Modifier
@@ -657,9 +621,23 @@ private fun MinimalHomeCard(
     onClick: () -> Unit
 ) {
 
+    var isFocused by remember {
+        mutableStateOf(false)
+    }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.035f else 1f,
+        label = "homeCardFocusScale"
+    )
+
     Card(
         modifier = modifier
             .height(170.dp)
+            .scale(scale)
+            .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+            }
+            .focusable()
             .clickable {
                 onClick()
             },
@@ -668,8 +646,12 @@ private fun MinimalHomeCard(
             containerColor = HomeCard
         ),
         border = BorderStroke(
-            1.dp,
-            HomeBorder
+            width = if (isFocused) 3.dp else 1.dp,
+            color = if (isFocused) {
+                HomeBlueLight
+            } else {
+                HomeBorder
+            }
         )
     ) {
 
@@ -678,10 +660,17 @@ private fun MinimalHomeCard(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF102033),
-                            Color(0xFF07101A)
-                        )
+                        colors = if (isFocused) {
+                            listOf(
+                                Color(0xFF153454),
+                                Color(0xFF081522)
+                            )
+                        } else {
+                            listOf(
+                                Color(0xFF102033),
+                                Color(0xFF07101A)
+                            )
+                        }
                     )
                 )
         ) {
@@ -695,7 +684,11 @@ private fun MinimalHomeCard(
 
                 Text(
                     text = icon,
-                    color = Color.White,
+                    color = if (isFocused) {
+                        HomeBlueLight
+                    } else {
+                        Color.White
+                    },
                     fontSize = 38.sp,
                     fontWeight = FontWeight.Light
                 )
@@ -718,10 +711,18 @@ private fun MinimalHomeCard(
 
                 Box(
                     modifier = Modifier
-                        .width(36.dp)
-                        .height(3.dp)
+                        .width(
+                            if (isFocused) 54.dp else 36.dp
+                        )
+                        .height(
+                            if (isFocused) 4.dp else 3.dp
+                        )
                         .background(
-                            HomeBlue.copy(alpha = 0.65f),
+                            if (isFocused) {
+                                HomeBlueLight
+                            } else {
+                                HomeBlue.copy(alpha = 0.65f)
+                            },
                             RoundedCornerShape(50)
                         )
                 )
@@ -738,21 +739,39 @@ private fun BottomActionButton(
     onClick: () -> Unit
 ) {
 
+    var isFocused by remember {
+        mutableStateOf(false)
+    }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.05f else 1f,
+        label = "bottomActionFocusScale"
+    )
+
     Surface(
         modifier = Modifier
             .width(118.dp)
             .height(72.dp)
+            .scale(scale)
+            .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+            }
+            .focusable()
             .clickable {
                 onClick()
             },
-        color = Color(0xB207101A),
+        color = if (isFocused) {
+            Color(0xE6102942)
+        } else {
+            Color(0xB207101A)
+        },
         shape = RoundedCornerShape(14.dp),
         border = BorderStroke(
-            1.dp,
-            if (highlighted) {
-                HomeBlue.copy(alpha = 0.35f)
-            } else {
-                HomeBorder
+            width = if (isFocused) 3.dp else 1.dp,
+            color = when {
+                isFocused -> HomeBlueLight
+                highlighted -> HomeBlue.copy(alpha = 0.35f)
+                else -> HomeBorder
             }
         )
     ) {
@@ -766,12 +785,11 @@ private fun BottomActionButton(
 
             Text(
                 text = icon,
-                color =
-                    if (highlighted) {
-                        HomeBlue
-                    } else {
-                        Color(0xFFB7C4D4)
-                    },
+                color = when {
+                    isFocused -> HomeBlueLight
+                    highlighted -> HomeBlue
+                    else -> Color(0xFFB7C4D4)
+                },
                 fontSize = 25.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -784,7 +802,11 @@ private fun BottomActionButton(
                 text = title,
                 color = Color.White,
                 fontSize = 9.sp,
-                fontWeight = FontWeight.Medium,
+                fontWeight = if (isFocused) {
+                    FontWeight.Bold
+                } else {
+                    FontWeight.Medium
+                },
                 letterSpacing = 0.7.sp
             )
         }
