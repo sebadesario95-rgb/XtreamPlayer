@@ -30,6 +30,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var loading by mutableStateOf(false)
         private set
 
+    // Stato reale della sincronizzazione del catalogo.
+    var catalogSyncActive by mutableStateOf(false)
+        private set
+
+    // "live", "movies", "series" oppure null.
+    var catalogSyncSection by mutableStateOf<String?>(null)
+        private set
+
+    // 0 -> 33 -> 66 -> 100, aggiornato solo al completamento reale di ogni sezione.
+    var catalogSyncProgress by mutableStateOf(0)
+        private set
+
     var error by mutableStateOf<String?>(null)
         private set
 
@@ -186,13 +198,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 loggedIn = true
                 editingAccount = false
 
+                catalogSyncActive = true
+                catalogSyncSection = "live"
+                catalogSyncProgress = 0
+
                 loadCatalog(
                     api,
                     c
                 )
 
+                catalogSyncSection = null
+                catalogSyncProgress = 100
+                catalogSyncActive = false
+
             } catch (e: Exception) {
                 loggedIn = false
+                catalogSyncActive = false
+                catalogSyncSection = null
 
                 error =
                     e.message
@@ -207,25 +229,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         api: XtreamApiService,
         c: Credentials
     ) {
+        // LIVE TV: categorie + stream.
+        catalogSyncSection = "live"
+
         liveCategories =
             runCatching {
                 api.liveCategories(
-                    c.username,
-                    c.password
-                )
-            }.getOrDefault(emptyList())
-
-        movieCategories =
-            runCatching {
-                api.vodCategories(
-                    c.username,
-                    c.password
-                )
-            }.getOrDefault(emptyList())
-
-        seriesCategories =
-            runCatching {
-                api.seriesCategories(
                     c.username,
                     c.password
                 )
@@ -239,9 +248,35 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 )
             }.getOrDefault(emptyList())
 
+        catalogSyncProgress = 33
+
+        // FILM: categorie + stream.
+        catalogSyncSection = "movies"
+
+        movieCategories =
+            runCatching {
+                api.vodCategories(
+                    c.username,
+                    c.password
+                )
+            }.getOrDefault(emptyList())
+
         movies =
             runCatching {
                 api.vodStreams(
+                    c.username,
+                    c.password
+                )
+            }.getOrDefault(emptyList())
+
+        catalogSyncProgress = 66
+
+        // SERIE TV: categorie + serie.
+        catalogSyncSection = "series"
+
+        seriesCategories =
+            runCatching {
+                api.seriesCategories(
                     c.username,
                     c.password
                 )
@@ -254,6 +289,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     c.password
                 )
             }.getOrDefault(emptyList())
+
+        catalogSyncProgress = 100
     }
 
     fun updateCatalog() {
@@ -262,6 +299,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             loading = true
             error = null
+
+            catalogSyncActive = true
+            catalogSyncSection = "live"
+            catalogSyncProgress = 0
 
             try {
                 val api =
@@ -277,6 +318,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     e.message
                         ?: "Errore durante l'aggiornamento."
             } finally {
+                catalogSyncSection = null
+                catalogSyncActive = false
                 loading = false
             }
         }
@@ -650,6 +693,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun beginAccountEdit() {
         error = null
+        catalogSyncActive = false
+        catalogSyncSection = null
+        catalogSyncProgress = 0
         editingAccount = true
         loggedIn = false
     }
@@ -658,6 +704,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         store.clear()
 
         editingAccount = false
+
+        catalogSyncActive = false
+        catalogSyncSection = null
+        catalogSyncProgress = 0
 
         credentials = null
         auth = null
