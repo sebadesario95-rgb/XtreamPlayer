@@ -188,6 +188,18 @@ fun HomeScreen(
                 onBack = {
                     currentSection = HomeSection.HOME
                 },
+                onHomeClick = {
+                    currentSection = HomeSection.HOME
+                },
+                onLiveClick = {
+                    currentSection = HomeSection.LIVE
+                },
+                onMoviesClick = {
+                    currentSection = HomeSection.MOVIES
+                },
+                onSeriesClick = {
+                    currentSection = HomeSection.SERIES
+                },
                 onModifyAccount = {
                     // Il collegamento alla modifica credenziali verrà
                     // agganciato dopo aver verificato come AppViewModel
@@ -563,6 +575,10 @@ private fun HomeMainScreen(
 private fun SettingsAccountScreen(
     vm: AppViewModel,
     onBack: () -> Unit,
+    onHomeClick: () -> Unit,
+    onLiveClick: () -> Unit,
+    onMoviesClick: () -> Unit,
+    onSeriesClick: () -> Unit,
     onModifyAccount: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -597,141 +613,346 @@ private fun SettingsAccountScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xB800050B))
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xEE01050A),
+                            Color(0xC9040A12),
+                            Color(0x9900050B)
+                        )
+                    )
+                )
         )
 
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 34.dp, top = 24.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SettingsTvButton(
-                title = "‹",
-                width = 48.dp,
-                onClick = onBack
-            )
-
-            Spacer(Modifier.width(18.dp))
-
-            Column {
-                Text(
-                    text = "FUTURE",
-                    color = Color.White,
-                    fontSize = 23.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 1.sp
-                )
-                Text(
-                    text = "S M A R T",
-                    color = HomeBlueLight,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 3.sp
-                )
-            }
-
-            Spacer(Modifier.width(34.dp))
-
-            Text(
-                text = "⚙  IMPOSTAZIONI  ›  ACCOUNT",
-                color = Color.White,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.sp
-            )
-        }
-
+        // SIDEBAR SINISTRA - come nel mockup
         Surface(
             modifier = Modifier
-                .align(Alignment.Center)
-                .widthIn(max = 760.dp)
-                .fillMaxWidth(0.68f),
-            color = Color(0xD90A1420),
-            shape = RoundedCornerShape(24.dp),
-            border = BorderStroke(1.dp, HomeBlue.copy(alpha = 0.65f)),
-            shadowElevation = 18.dp
+                .fillMaxHeight()
+                .width(220.dp),
+            color = Color(0xE8050B12),
+            border = BorderStroke(
+                width = 1.dp,
+                color = HomeBlue.copy(alpha = 0.22f)
+            )
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 34.dp, vertical = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 24.dp)
             ) {
-                Surface(
-                    modifier = Modifier.size(70.dp),
-                    shape = RoundedCornerShape(50),
-                    color = Color(0xFF0D2740),
-                    border = BorderStroke(2.dp, HomeBlueLight)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        HomeBlueLight.copy(alpha = 0.42f),
+                                        Color.Transparent
+                                    )
+                                ),
+                                RoundedCornerShape(14.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = "●",
+                            text = "F",
                             color = HomeBlueLight,
-                            fontSize = 34.sp
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+
+                    Spacer(Modifier.width(10.dp))
+
+                    Column {
+                        Text(
+                            text = "FUTURE",
+                            color = Color.White,
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 0.8.sp
+                        )
+                        Text(
+                            text = "S M A R T",
+                            color = HomeBlueLight,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.5.sp
                         )
                     }
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(34.dp))
 
-                Text(
-                    text = "IL TUO ACCOUNT",
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold
+                SettingsSidebarItem(
+                    icon = "⌂",
+                    title = "HOME",
+                    onClick = onHomeClick
                 )
 
-                Text(
-                    text = "Tutte le informazioni del tuo abbonamento",
-                    color = HomeBlueLight,
-                    fontSize = 12.sp
-                )
-
-                Spacer(Modifier.height(18.dp))
-
-                SettingsInfoRow(
-                    icon = "♙",
-                    label = "Username",
-                    value = username
-                )
-                SettingsInfoRow(
+                SettingsSidebarItem(
                     icon = "▣",
-                    label = "Server",
-                    value = server
-                )
-                SettingsInfoRow(
-                    icon = "▦",
-                    label = "Scadenza",
-                    value = expiration,
-                    status = if (isExpired) "SCADUTO" else "ATTIVO"
+                    title = "LIVE TV",
+                    onClick = onLiveClick
                 )
 
-                Spacer(Modifier.height(22.dp))
+                SettingsSidebarItem(
+                    icon = "▶",
+                    title = "FILM",
+                    onClick = onMoviesClick
+                )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(18.dp)
-                ) {
-                    SettingsTvButton(
-                        title = "✎  MODIFICA ACCOUNT",
-                        modifier = Modifier.weight(1f),
-                        onClick = onModifyAccount
-                    )
-                    SettingsTvButton(
-                        title = "↪  ESCI",
-                        modifier = Modifier.weight(1f),
-                        onClick = onLogout
-                    )
-                }
+                SettingsSidebarItem(
+                    icon = "▤",
+                    title = "SERIE TV",
+                    onClick = onSeriesClick
+                )
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color.White.copy(alpha = 0.10f))
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                SettingsSidebarItem(
+                    icon = "⚙",
+                    title = "IMPOSTAZIONI",
+                    selected = true,
+                    onClick = {}
+                )
+
+                Spacer(Modifier.weight(1f))
 
                 Text(
-                    text = "IL PLAYER CHE FA PER TE",
-                    color = Color.White.copy(alpha = 0.72f),
-                    fontSize = 10.sp,
-                    letterSpacing = 3.sp
+                    text = "IL PLAYER",
+                    color = Color.White.copy(alpha = 0.58f),
+                    fontSize = 9.sp,
+                    letterSpacing = 2.sp
+                )
+                Text(
+                    text = "CHE FA PER TE",
+                    color = HomeBlueLight.copy(alpha = 0.90f),
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.7.sp
                 )
             }
+        }
+
+        // AREA PRINCIPALE
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 220.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 30.dp, top = 24.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SettingsTvButton(
+                    title = "‹",
+                    width = 48.dp,
+                    onClick = onBack
+                )
+
+                Spacer(Modifier.width(18.dp))
+
+                Text(
+                    text = "⚙  IMPOSTAZIONI  ›  ACCOUNT",
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.sp
+                )
+            }
+
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(horizontal = 52.dp)
+                    .widthIn(max = 720.dp)
+                    .fillMaxWidth(),
+                color = Color(0xD90A1420),
+                shape = RoundedCornerShape(24.dp),
+                border = BorderStroke(
+                    1.dp,
+                    HomeBlue.copy(alpha = 0.65f)
+                ),
+                shadowElevation = 18.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(
+                        horizontal = 34.dp,
+                        vertical = 24.dp
+                    ),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Surface(
+                        modifier = Modifier.size(70.dp),
+                        shape = RoundedCornerShape(50),
+                        color = Color(0xFF0D2740),
+                        border = BorderStroke(2.dp, HomeBlueLight)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "●",
+                                color = HomeBlueLight,
+                                fontSize = 34.sp
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Text(
+                        text = "IL TUO ACCOUNT",
+                        color = Color.White,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+
+                    Text(
+                        text = "Tutte le informazioni del tuo abbonamento",
+                        color = HomeBlueLight,
+                        fontSize = 12.sp
+                    )
+
+                    Spacer(Modifier.height(18.dp))
+
+                    SettingsInfoRow(
+                        icon = "♙",
+                        label = "Username",
+                        value = username
+                    )
+
+                    SettingsInfoRow(
+                        icon = "▣",
+                        label = "Server",
+                        value = server
+                    )
+
+                    SettingsInfoRow(
+                        icon = "▦",
+                        label = "Scadenza",
+                        value = expiration,
+                        status = if (isExpired) "SCADUTO" else "ATTIVO"
+                    )
+
+                    Spacer(Modifier.height(22.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        SettingsTvButton(
+                            title = "✎  MODIFICA ACCOUNT",
+                            modifier = Modifier.weight(1f),
+                            onClick = onModifyAccount
+                        )
+
+                        SettingsTvButton(
+                            title = "↪  ESCI",
+                            modifier = Modifier.weight(1f),
+                            onClick = onLogout
+                        )
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Text(
+                        text = "IL PLAYER CHE FA PER TE",
+                        color = Color.White.copy(alpha = 0.72f),
+                        fontSize = 10.sp,
+                        letterSpacing = 3.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsSidebarItem(
+    icon: String,
+    title: String,
+    selected: Boolean = false,
+    onClick: () -> Unit
+) {
+    var isFocused by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.025f else 1f,
+        label = "settingsSidebarFocusScale"
+    )
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .padding(vertical = 3.dp)
+            .scale(scale)
+            .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
+            .clickable { onClick() },
+        color = when {
+            isFocused -> Color(0xFF123A60)
+            selected -> Color(0xCC0B3154)
+            else -> Color.Transparent
+        },
+        shape = RoundedCornerShape(11.dp),
+        border = BorderStroke(
+            width = if (isFocused) 3.dp else if (selected) 1.dp else 0.dp,
+            color = when {
+                isFocused -> HomeBlueLight
+                selected -> HomeBlue.copy(alpha = 0.72f)
+                else -> Color.Transparent
+            }
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = icon,
+                color = if (isFocused || selected) {
+                    HomeBlueLight
+                } else {
+                    Color(0xFFB7C4D4)
+                },
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(Modifier.width(13.dp))
+
+            Text(
+                text = title,
+                color = if (isFocused || selected) {
+                    Color.White
+                } else {
+                    Color(0xFFC4CFDC)
+                },
+                fontSize = 12.sp,
+                fontWeight = if (selected || isFocused) {
+                    FontWeight.Bold
+                } else {
+                    FontWeight.Medium
+                },
+                letterSpacing = 0.7.sp
+            )
         }
     }
 }
