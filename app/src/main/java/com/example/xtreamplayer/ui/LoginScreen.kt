@@ -48,9 +48,17 @@ private val LoginMuted = Color(0xFF9AA6B2)
 
 @Composable
 fun LoginScreen(vm: AppViewModel) {
-    var server by remember { mutableStateOf("") }
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    val accountToEdit = if (vm.editingAccount) vm.credentials else null
+
+    var server by remember(accountToEdit) {
+        mutableStateOf(accountToEdit?.serverUrl.orEmpty())
+    }
+    var username by remember(accountToEdit) {
+        mutableStateOf(accountToEdit?.username.orEmpty())
+    }
+    var password by remember(accountToEdit) {
+        mutableStateOf(accountToEdit?.password.orEmpty())
+    }
     var passwordVisible by remember { mutableStateOf(false) }
 
     val canLogin = !vm.loading &&
@@ -123,6 +131,7 @@ fun LoginScreen(vm: AppViewModel) {
                         password = password,
                         passwordVisible = passwordVisible,
                         loading = vm.loading,
+                        editingAccount = vm.editingAccount,
                         canLogin = canLogin,
                         error = vm.error,
                         onServerChange = { server = it },
@@ -161,6 +170,7 @@ fun LoginScreen(vm: AppViewModel) {
                         password = password,
                         passwordVisible = passwordVisible,
                         loading = vm.loading,
+                        editingAccount = vm.editingAccount,
                         canLogin = canLogin,
                         error = vm.error,
                         onServerChange = { server = it },
@@ -293,6 +303,7 @@ private fun LoginCard(
     password: String,
     passwordVisible: Boolean,
     loading: Boolean,
+    editingAccount: Boolean,
     canLogin: Boolean,
     error: String?,
     onServerChange: (String) -> Unit,
@@ -316,7 +327,7 @@ private fun LoginCard(
             modifier = Modifier.padding(30.dp)
         ) {
             Text(
-                text = "Accedi al tuo account",
+                text = if (editingAccount) "Modifica account" else "Accedi al tuo account",
                 color = Color.White,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
@@ -325,7 +336,11 @@ private fun LoginCard(
             Spacer(Modifier.height(6.dp))
 
             Text(
-                text = "Inserisci le credenziali fornite dal tuo servizio.",
+                text = if (editingAccount) {
+                    "Modifica i dati che desideri e conferma il nuovo accesso."
+                } else {
+                    "Inserisci le credenziali fornite dal tuo servizio."
+                },
                 color = LoginMuted,
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -392,6 +407,7 @@ private fun LoginCard(
             LoginTvButton(
                 enabled = canLogin,
                 loading = loading,
+                editingAccount = editingAccount,
                 onClick = onLogin
             )
 
@@ -417,6 +433,7 @@ private fun LoginCard(
 private fun LoginTvButton(
     enabled: Boolean,
     loading: Boolean,
+    editingAccount: Boolean,
     onClick: () -> Unit
 ) {
     var isFocused by remember { mutableStateOf(false) }
@@ -455,7 +472,7 @@ private fun LoginTvButton(
             )
         } else {
             Text(
-                text = "ACCEDI",
+                text = if (editingAccount) "SALVA E ACCEDI" else "ACCEDI",
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.8.sp
             )
@@ -612,4 +629,3 @@ private fun LoginTextField(
         )
     }
 }
-
