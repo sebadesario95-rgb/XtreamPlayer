@@ -9,12 +9,30 @@ android {
     namespace = "com.example.xtreamplayer"
     compileSdk = 35
 
+    signingConfigs {
+        create("futureSmart") {
+            storeFile = file(
+                System.getenv("FUTURE_SMART_KEYSTORE_PATH")
+                    ?: "future-smart.jks"
+            )
+            storePassword = System.getenv("FUTURE_SMART_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("FUTURE_SMART_KEY_ALIAS")
+            keyPassword = System.getenv("FUTURE_SMART_KEY_PASSWORD")
+        }
+    }
+
     defaultConfig {
         applicationId = "com.example.xtreamplayer"
         minSdk = 23
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+    }
+
+    buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("futureSmart")
+        }
     }
 
     compileOptions {
