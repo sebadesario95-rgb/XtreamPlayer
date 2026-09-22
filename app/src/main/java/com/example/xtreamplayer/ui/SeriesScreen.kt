@@ -1,5 +1,6 @@
 package com.example.xtreamplayer.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -720,6 +721,15 @@ private fun SeriesDetailScreen(
     onPlay: (String, String) -> Unit,
     onBack: () -> Unit
 ) {
+    /*
+     * BACK fisico del telecomando:
+     * dal dettaglio torna al catalogo SERIE TV.
+     * Usa lo stesso onBack del pulsante grafico.
+     */
+    BackHandler {
+        onBack()
+    }
+
     val info = vm.selectedSeriesInfo
     val seriesInfo = info?.info
     val seriesId = series.series_id
