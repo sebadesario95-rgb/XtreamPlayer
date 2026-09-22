@@ -219,7 +219,6 @@ private fun HomeMainScreen(
     onSeriesClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
-
     var currentTime by remember {
         mutableStateOf(getCurrentTime())
     }
@@ -231,178 +230,90 @@ private fun HomeMainScreen(
         }
     }
 
-    val expiration =
-        vm.auth?.user_info?.exp_date
+    val expiration = vm.auth?.user_info?.exp_date
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(HomeBackground)
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.future_smart_home_background),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
 
-        HomeBackgroundDecoration()
-
-        Row(
+        Box(
             modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(
-                    start = 42.dp,
-                    top = 28.dp
-                ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            Text(
-                text = "X",
-                color = HomeBlue,
-                fontSize = 46.sp,
-                fontWeight = FontWeight.Black
-            )
-
-            Spacer(
-                modifier = Modifier.width(6.dp)
-            )
-
-            Column {
-
-                Text(
-                    text = "TREAM",
-                    color = Color.White,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 1.sp
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.08f),
+                            Color.Black.copy(alpha = 0.10f),
+                            Color(0xFF01050A).copy(alpha = 0.38f)
+                        )
+                    )
                 )
-
-                Text(
-                    text = "P L A Y E R",
-                    color = Color.White,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 3.sp
-                )
-            }
-        }
+        )
 
         Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(
-                    end = 42.dp,
-                    top = 30.dp
-                ),
+                .padding(end = 42.dp, top = 28.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Surface(
-                color = Color(0x66061321),
-                shape = RoundedCornerShape(12.dp),
+                color = Color(0xB3071715),
+                shape = RoundedCornerShape(50),
                 border = BorderStroke(
-                    1.dp,
-                    Color(0xAA0B4B8F)
+                    1.5.dp,
+                    Color(0xFF00E58A)
                 )
             ) {
-
                 Row(
                     modifier = Modifier.padding(
-                        horizontal = 14.dp,
+                        horizontal = 17.dp,
                         vertical = 8.dp
                     ),
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-
                     Text(
-                        text = "◇",
-                        color = HomeBlue,
-                        fontSize = 23.sp,
+                        text = "◆",
+                        color = Color(0xFF00E58A),
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
 
-                    Spacer(
-                        modifier = Modifier.width(8.dp)
+                    Spacer(Modifier.width(8.dp))
+
+                    Text(
+                        text = "VPN ATTIVA",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.6.sp
                     )
-
-                    Column {
-
-                        Text(
-                            text = "VPN",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Text(
-                            text = "ATTIVA",
-                            color = HomeBlueLight,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
-                    }
                 }
             }
 
-            Spacer(
-                modifier = Modifier.width(20.dp)
-            )
+            Spacer(Modifier.width(18.dp))
 
             Box(
                 modifier = Modifier
                     .width(1.dp)
-                    .height(30.dp)
-                    .background(
-                        Color.White.copy(alpha = 0.35f)
-                    )
+                    .height(28.dp)
+                    .background(Color.White.copy(alpha = 0.32f))
             )
 
-            Spacer(
-                modifier = Modifier.width(20.dp)
-            )
+            Spacer(Modifier.width(18.dp))
 
             Text(
                 text = currentTime,
                 color = Color.White,
-                fontSize = 21.sp,
-                fontWeight = FontWeight.Medium
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 72.dp),
-            horizontalAlignment =
-                Alignment.CenterHorizontally
-        ) {
-
-            Text(
-                text = "B E N V E N U T O   S U",
-                color = HomeMuted,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
-            )
-
-            Spacer(
-                modifier = Modifier.height(7.dp)
-            )
-
-            Text(
-                text = "X T R E A M   P L A Y E R",
-                color = Color.White,
                 fontSize = 22.sp,
-                fontWeight = FontWeight.Light,
-                letterSpacing = 2.sp
-            )
-
-            Spacer(
-                modifier = Modifier.height(7.dp)
-            )
-
-            Text(
-                text = "IL TUO MONDO IN UN'UNICA APP",
-                color = HomeMuted,
-                fontSize = 10.sp,
-                letterSpacing = 2.sp
+                fontWeight = FontWeight.Bold
             )
         }
 
@@ -410,30 +321,27 @@ private fun HomeMainScreen(
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxWidth()
-                .padding(horizontal = 105.dp),
-            horizontalArrangement =
-                Arrangement.spacedBy(18.dp),
-            verticalAlignment =
-                Alignment.CenterVertically
+                .padding(horizontal = 145.dp),
+            horizontalArrangement = Arrangement.spacedBy(22.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-
-            MinimalHomeCard(
+            CinematicHomeCard(
                 title = "LIVE TV",
-                icon = "▣",
+                imageRes = R.drawable.home_live,
                 modifier = Modifier.weight(1f),
                 onClick = onLiveClick
             )
 
-            MinimalHomeCard(
+            CinematicHomeCard(
                 title = "FILM",
-                icon = "▶",
+                imageRes = R.drawable.home_film,
                 modifier = Modifier.weight(1f),
                 onClick = onMoviesClick
             )
 
-            MinimalHomeCard(
+            CinematicHomeCard(
                 title = "SERIE TV",
-                icon = "▤",
+                imageRes = R.drawable.home_series,
                 modifier = Modifier.weight(1f),
                 onClick = onSeriesClick
             )
@@ -442,39 +350,28 @@ private fun HomeMainScreen(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(
-                    start = 42.dp,
-                    bottom = 30.dp
-                )
+                .padding(start = 42.dp, bottom = 30.dp)
         ) {
-
             Text(
-                text =
-                    if (!expiration.isNullOrBlank()) {
-                        "SCADENZA: ${
-                            formatExpirationDate(
-                                expiration
-                            )
-                        }"
-                    } else {
-                        "SCADENZA: --/--/----"
-                    },
-                color = Color(0xFFD3D9E0),
+                text = if (!expiration.isNullOrBlank()) {
+                    "SCADENZA: ${formatExpirationDate(expiration)}"
+                } else {
+                    "SCADENZA: --/--/----"
+                },
+                color = Color(0xFFDDE6EF),
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 1.sp
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.7.sp
             )
 
-            Spacer(
-                modifier = Modifier.height(10.dp)
-            )
+            Spacer(Modifier.height(8.dp))
 
             Box(
                 modifier = Modifier
-                    .width(38.dp)
+                    .width(40.dp)
                     .height(3.dp)
                     .background(
-                        HomeBlue,
+                        HomeBlueLight,
                         RoundedCornerShape(50)
                     )
             )
@@ -483,14 +380,9 @@ private fun HomeMainScreen(
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(
-                    end = 34.dp,
-                    bottom = 22.dp
-                ),
-            horizontalArrangement =
-                Arrangement.spacedBy(12.dp)
+                .padding(end = 34.dp, bottom = 22.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-
             BottomActionButton(
                 title = "IMPOSTAZIONI",
                 icon = "⚙",
@@ -508,29 +400,21 @@ private fun HomeMainScreen(
         }
 
         if (vm.loading) {
-
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Color.Black.copy(alpha = 0.65f)
-                    ),
+                    .background(Color.Black.copy(alpha = 0.65f)),
                 contentAlignment = Alignment.Center
             ) {
-
                 Column(
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-
                     CircularProgressIndicator(
                         color = HomeBlue,
                         strokeWidth = 3.dp
                     )
 
-                    Spacer(
-                        modifier = Modifier.height(14.dp)
-                    )
+                    Spacer(Modifier.height(14.dp))
 
                     Text(
                         text = "Aggiornamento catalogo...",
@@ -542,20 +426,16 @@ private fun HomeMainScreen(
         }
 
         vm.error?.let { error ->
-
             Surface(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 22.dp),
-                color =
-                    MaterialTheme.colorScheme.errorContainer,
+                color = MaterialTheme.colorScheme.errorContainer,
                 shape = RoundedCornerShape(12.dp)
             ) {
-
                 Text(
                     text = error,
-                    color =
-                        MaterialTheme.colorScheme.onErrorContainer,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
                     modifier = Modifier.padding(
                         horizontal = 18.dp,
                         vertical = 10.dp
@@ -1140,13 +1020,12 @@ private fun HomeBackgroundDecoration() {
 }
 
 @Composable
-private fun MinimalHomeCard(
+private fun CinematicHomeCard(
     title: String,
-    icon: String,
+    imageRes: Int,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-
     var isFocused by remember {
         mutableStateOf(false)
     }
@@ -1158,96 +1037,76 @@ private fun MinimalHomeCard(
 
     Card(
         modifier = modifier
-            .height(170.dp)
+            .height(245.dp)
             .scale(scale)
             .onFocusChanged { focusState ->
                 isFocused = focusState.isFocused
             }
             .focusable()
-            .clickable {
-                onClick()
-            },
+            .clickable { onClick() },
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = HomeCard
+            containerColor = Color(0xFF07101A)
         ),
         border = BorderStroke(
             width = if (isFocused) 3.dp else 1.dp,
             color = if (isFocused) {
                 HomeBlueLight
             } else {
-                HomeBorder
+                Color(0xFF41566D)
             }
         )
     ) {
-
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = if (isFocused) {
-                            listOf(
-                                Color(0xFF153454),
-                                Color(0xFF081522)
-                            )
-                        } else {
-                            listOf(
-                                Color(0xFF102033),
-                                Color(0xFF07101A)
-                            )
-                        }
-                    )
-                )
+            modifier = Modifier.fillMaxSize()
         ) {
+            Image(
+                painter = painterResource(id = imageRes),
+                contentDescription = title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.08f),
+                                Color.Black.copy(alpha = 0.88f)
+                            ),
+                            startY = 70f
+                        )
+                    )
+            )
 
             Column(
-                modifier =
-                    Modifier.align(Alignment.Center),
-                horizontalAlignment =
-                    Alignment.CenterHorizontally
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-
-                Text(
-                    text = icon,
-                    color = if (isFocused) {
-                        HomeBlueLight
-                    } else {
-                        Color.White
-                    },
-                    fontSize = 38.sp,
-                    fontWeight = FontWeight.Light
-                )
-
-                Spacer(
-                    modifier = Modifier.height(20.dp)
-                )
-
                 Text(
                     text = title,
                     color = Color.White,
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.8.sp
                 )
 
-                Spacer(
-                    modifier = Modifier.height(14.dp)
-                )
+                Spacer(Modifier.height(9.dp))
 
                 Box(
                     modifier = Modifier
-                        .width(
-                            if (isFocused) 54.dp else 36.dp
-                        )
-                        .height(
-                            if (isFocused) 4.dp else 3.dp
-                        )
+                        .width(if (isFocused) 58.dp else 38.dp)
+                        .height(if (isFocused) 4.dp else 3.dp)
                         .background(
                             if (isFocused) {
                                 HomeBlueLight
                             } else {
-                                HomeBlue.copy(alpha = 0.65f)
+                                Color.White.copy(alpha = 0.24f)
                             },
                             RoundedCornerShape(50)
                         )
