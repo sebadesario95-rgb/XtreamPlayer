@@ -2,7 +2,9 @@ package com.example.xtreamplayer.ui
 
 import android.util.Base64
 import android.view.ViewGroup
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,6 +18,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -343,20 +347,37 @@ private fun LiveTopBar(
             Alignment.CenterVertically
     ) {
 
-        TextButton(
-            onClick = onBack,
-            contentPadding =
-                PaddingValues(
-                    horizontal = 8.dp
-                )
-        ) {
-            Text(
-                text = "‹",
-                color = Color.White,
-                fontSize = 34.sp,
-                fontWeight =
-                    FontWeight.Light
+        var backFocused by remember { mutableStateOf(false) }
+        val backScale by animateFloatAsState(
+            targetValue = if (backFocused) 1.08f else 1f,
+            label = "liveBackFocusScale"
+        )
+
+        Surface(
+            modifier = Modifier
+                .size(44.dp)
+                .scale(backScale)
+                .onFocusChanged { backFocused = it.isFocused }
+                .focusable()
+                .clickable(onClick = onBack),
+            color = if (backFocused) Color(0xFF102942) else Color.Transparent,
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(
+                if (backFocused) 3.dp else 1.dp,
+                if (backFocused) LiveBlueLight else Color.Transparent
             )
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "‹",
+                    color = if (backFocused) LiveBlueLight else Color.White,
+                    fontSize = 34.sp,
+                    fontWeight = FontWeight.Light
+                )
+            }
         }
 
         Spacer(
@@ -475,85 +496,66 @@ private fun GlobalLiveSearchField(
     value: String,
     onValueChange: (String) -> Unit
 ) {
-    Row(
+    var isFocused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.03f else 1f,
+        label = "globalLiveSearchFocusScale"
+    )
+
+    Surface(
         modifier = Modifier
             .width(230.dp)
             .height(38.dp)
-            .clip(
-                RoundedCornerShape(12.dp)
-            )
-            .background(
-                Color(0xFF07101A)
-            )
-            .padding(
-                horizontal = 11.dp
-            ),
-        verticalAlignment =
-            Alignment.CenterVertically
+            .scale(scale)
+            .onFocusChanged { isFocused = it.isFocused },
+        color = if (isFocused) Color(0xFF102942) else Color(0xFF07101A),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(
+            if (isFocused) 3.dp else 1.dp,
+            if (isFocused) LiveBlueLight else LiveBorder.copy(alpha = 0.55f)
+        )
     ) {
-
-        Text(
-            text = "⌕",
-            color =
-                if (value.isNotBlank()) {
-                    LiveBlueLight
-                } else {
-                    LiveMuted
-                },
-            fontSize = 20.sp
-        )
-
-        Spacer(
-            modifier = Modifier.width(8.dp)
-        )
-
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier =
-                Modifier.weight(1f),
-            singleLine = true,
-            textStyle = TextStyle(
-                color = Color.White,
-                fontSize = 12.sp
-            ),
-            cursorBrush =
-                SolidColor(LiveBlue),
-            decorationBox = {
-                innerTextField ->
-
-                Box(
-                    contentAlignment =
-                        Alignment.CenterStart
-                ) {
-                    if (value.isEmpty()) {
-                        Text(
-                            text =
-                                "Cerca in tutti i canali...",
-                            color =
-                                LiveMuted.copy(
-                                    alpha = 0.7f
-                                ),
-                            fontSize = 11.sp
-                        )
-                    }
-
-                    innerTextField()
-                }
-            }
-        )
-
-        if (value.isNotEmpty()) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 11.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                text = "×",
-                modifier = Modifier
-                    .clickable {
-                        onValueChange("")
-                    }
-                    .padding(4.dp),
-                color = LiveMuted,
-                fontSize = 18.sp
+                text = "⌕",
+                color = if (isFocused || value.isNotBlank()) LiveBlueLight else LiveMuted,
+                fontSize = 20.sp
             )
+            Spacer(Modifier.width(8.dp))
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                textStyle = TextStyle(color = Color.White, fontSize = 12.sp),
+                cursorBrush = SolidColor(LiveBlue),
+                decorationBox = { innerTextField ->
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        if (value.isEmpty()) {
+                            Text(
+                                text = "Cerca in tutti i canali...",
+                                color = if (isFocused) Color.White.copy(alpha = 0.78f)
+                                else LiveMuted.copy(alpha = 0.7f),
+                                fontSize = 11.sp
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            )
+            if (value.isNotEmpty()) {
+                Text(
+                    text = "×",
+                    modifier = Modifier.clickable { onValueChange("") }.padding(4.dp),
+                    color = if (isFocused) LiveBlueLight else LiveMuted,
+                    fontSize = 18.sp
+                )
+            }
         }
     }
 }
@@ -671,81 +673,63 @@ private fun CategoryRow(
     count: Int?,
     onClick: () -> Unit
 ) {
-    val background =
-        if (selected) {
-            Color(0x261677FF)
-        } else {
-            Color.Transparent
-        }
+    var isFocused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.035f else 1f,
+        label = "categoryFocusScale"
+    )
 
-    Row(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(
-                RoundedCornerShape(10.dp)
-            )
-            .background(background)
-            .clickable(onClick = onClick)
-            .padding(
-                horizontal = 10.dp,
-                vertical = 9.dp
-            ),
-        verticalAlignment =
-            Alignment.CenterVertically
+            .scale(scale)
+            .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
+            .clickable(onClick = onClick),
+        color = when {
+            isFocused -> Color(0xFF102942)
+            selected -> Color(0x261677FF)
+            else -> Color.Transparent
+        },
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(
+            if (isFocused) 3.dp else if (selected) 1.dp else 0.dp,
+            when {
+                isFocused -> LiveBlueLight
+                selected -> LiveBlue.copy(alpha = 0.7f)
+                else -> Color.Transparent
+            }
+        )
     ) {
-
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .background(
-                    if (selected) {
-                        LiveBlueLight
-                    } else {
-                        LiveMuted.copy(
-                            alpha = 0.55f
-                        )
-                    },
-                    CircleShape
-                )
-        )
-
-        Spacer(
-            modifier = Modifier.width(9.dp)
-        )
-
-        Text(
-            text = title,
-            modifier =
-                Modifier.weight(1f),
-            color =
-                if (selected) {
-                    Color.White
-                } else {
-                    LiveMuted
-                },
-            fontSize = 12.sp,
-            fontWeight =
-                if (selected) {
-                    FontWeight.Bold
-                } else {
-                    FontWeight.Medium
-                },
-            maxLines = 1,
-            overflow =
-                TextOverflow.Ellipsis
-        )
-
-        if (count != null) {
-            Text(
-                text = count.toString(),
-                color =
-                    if (selected) {
-                        LiveBlueLight
-                    } else {
-                        LiveMuted
-                    },
-                fontSize = 10.sp
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(if (isFocused) 7.dp else 6.dp)
+                    .background(
+                        if (isFocused || selected) LiveBlueLight else LiveMuted.copy(alpha = 0.55f),
+                        CircleShape
+                    )
             )
+            Spacer(Modifier.width(9.dp))
+            Text(
+                text = title,
+                modifier = Modifier.weight(1f),
+                color = if (isFocused || selected) Color.White else LiveMuted,
+                fontSize = 12.sp,
+                fontWeight = if (isFocused || selected) FontWeight.Bold else FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (count != null) {
+                Text(
+                    text = count.toString(),
+                    color = if (isFocused || selected) LiveBlueLight else LiveMuted,
+                    fontSize = 10.sp
+                )
+            }
         }
     }
 }
@@ -882,80 +866,64 @@ private fun LiveSearchField(
     value: String,
     onValueChange: (String) -> Unit
 ) {
-    Row(
+    var isFocused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.025f else 1f,
+        label = "liveSearchFocusScale"
+    )
+
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(38.dp)
-            .clip(
-                RoundedCornerShape(10.dp)
-            )
-            .background(
-                Color(0xFF07101A)
-            )
-            .padding(
-                horizontal = 11.dp
-            ),
-        verticalAlignment =
-            Alignment.CenterVertically
+            .scale(scale)
+            .onFocusChanged { isFocused = it.isFocused },
+        color = if (isFocused) Color(0xFF102942) else Color(0xFF07101A),
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(
+            if (isFocused) 3.dp else 1.dp,
+            if (isFocused) LiveBlueLight else LiveBorder.copy(alpha = 0.55f)
+        )
     ) {
-
-        Text(
-            text = "⌕",
-            color = LiveMuted,
-            fontSize = 20.sp
-        )
-
-        Spacer(
-            modifier = Modifier.width(8.dp)
-        )
-
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier =
-                Modifier.weight(1f),
-            singleLine = true,
-            textStyle = TextStyle(
-                color = Color.White,
-                fontSize = 12.sp
-            ),
-            cursorBrush =
-                SolidColor(LiveBlue),
-            decorationBox = {
-                innerTextField ->
-
-                Box(
-                    contentAlignment =
-                        Alignment.CenterStart
-                ) {
-                    if (value.isEmpty()) {
-                        Text(
-                            text =
-                                "Cerca canale...",
-                            color =
-                                LiveMuted.copy(
-                                    alpha = 0.7f
-                                ),
-                            fontSize = 12.sp
-                        )
-                    }
-
-                    innerTextField()
-                }
-            }
-        )
-
-        if (value.isNotEmpty()) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 11.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                text = "×",
-                modifier = Modifier
-                    .clickable {
-                        onValueChange("")
-                    }
-                    .padding(4.dp),
-                color = LiveMuted,
-                fontSize = 18.sp
+                text = "⌕",
+                color = if (isFocused) LiveBlueLight else LiveMuted,
+                fontSize = 20.sp
             )
+            Spacer(Modifier.width(8.dp))
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                textStyle = TextStyle(color = Color.White, fontSize = 12.sp),
+                cursorBrush = SolidColor(LiveBlue),
+                decorationBox = { innerTextField ->
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        if (value.isEmpty()) {
+                            Text(
+                                text = "Cerca canale...",
+                                color = if (isFocused) Color.White.copy(alpha = 0.78f)
+                                else LiveMuted.copy(alpha = 0.7f),
+                                fontSize = 12.sp
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            )
+            if (value.isNotEmpty()) {
+                Text(
+                    text = "×",
+                    modifier = Modifier.clickable { onValueChange("") }.padding(4.dp),
+                    color = if (isFocused) LiveBlueLight else LiveMuted,
+                    fontSize = 18.sp
+                )
+            }
         }
     }
 }
@@ -966,154 +934,93 @@ private fun ChannelRow(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    val background =
-        if (selected) {
-            Color(0x261677FF)
-        } else {
-            LivePanelLight.copy(
-                alpha = 0.55f
-            )
-        }
-
-    val border =
-        if (selected) {
-            LiveBlue
-        } else {
-            LiveBorder.copy(
-                alpha = 0.6f
-            )
-        }
+    var isFocused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.025f else 1f,
+        label = "channelFocusScale"
+    )
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .scale(scale)
+            .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
             .clickable(onClick = onClick),
-        color = background,
-        shape =
-            RoundedCornerShape(11.dp),
+        color = when {
+            isFocused -> Color(0xFF102942)
+            selected -> Color(0x261677FF)
+            else -> LivePanelLight.copy(alpha = 0.55f)
+        },
+        shape = RoundedCornerShape(11.dp),
         border = BorderStroke(
-            if (selected) {
-                1.2.dp
-            } else {
-                0.7.dp
+            when {
+                isFocused -> 3.dp
+                selected -> 1.2.dp
+                else -> 0.7.dp
             },
-            border
+            when {
+                isFocused -> LiveBlueLight
+                selected -> LiveBlue
+                else -> LiveBorder.copy(alpha = 0.6f)
+            }
         )
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 9.dp,
-                    vertical = 8.dp
-                ),
-            verticalAlignment =
-                Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 9.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-
             Surface(
-                modifier =
-                    Modifier.size(38.dp),
-                color =
-                    Color(0xFF101C29),
-                shape =
-                    RoundedCornerShape(8.dp)
+                modifier = Modifier.size(38.dp),
+                color = if (isFocused) Color(0xFF153454) else Color(0xFF101C29),
+                shape = RoundedCornerShape(8.dp),
+                border = if (isFocused) BorderStroke(1.dp, LiveBlue.copy(alpha = 0.7f)) else null
             ) {
-                if (
-                    !stream.stream_icon
-                        .isNullOrBlank()
-                ) {
+                if (!stream.stream_icon.isNullOrBlank()) {
                     AsyncImage(
-                        model =
-                            stream.stream_icon,
-                        contentDescription =
-                            stream.name,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(4.dp)
+                        model = stream.stream_icon,
+                        contentDescription = stream.name,
+                        modifier = Modifier.fillMaxSize().padding(4.dp)
                     )
                 } else {
-                    Box(
-                        modifier =
-                            Modifier.fillMaxSize(),
-                        contentAlignment =
-                            Alignment.Center
-                    ) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text =
-                                stream.name
-                                    ?.take(1)
-                                    ?.uppercase()
-                                    ?: "TV",
-                            color =
-                                LiveBlueLight,
+                            text = stream.name?.take(1)?.uppercase() ?: "TV",
+                            color = LiveBlueLight,
                             fontSize = 12.sp,
-                            fontWeight =
-                                FontWeight.Bold
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
             }
-
-            Spacer(
-                modifier =
-                    Modifier.width(10.dp)
-            )
-
-            Column(
-                modifier =
-                    Modifier.weight(1f)
-            ) {
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
                 Text(
-                    text =
-                        stream.name
-                            ?: "Canale",
+                    text = stream.name ?: "Canale",
                     color = Color.White,
                     fontSize = 12.sp,
-                    fontWeight =
-                        if (selected) {
-                            FontWeight.Bold
-                        } else {
-                            FontWeight.SemiBold
-                        },
+                    fontWeight = if (isFocused || selected) FontWeight.Bold else FontWeight.SemiBold,
                     maxLines = 1,
-                    overflow =
-                        TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis
                 )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(2.dp)
-                )
-
+                Spacer(Modifier.height(2.dp))
                 Text(
-                    text =
-                        if (selected) {
-                            "IN RIPRODUZIONE"
-                        } else {
-                            "LIVE"
-                        },
-                    color =
-                        if (selected) {
-                            LiveBlueLight
-                        } else {
-                            LiveMuted
-                        },
+                    text = when {
+                        selected -> "IN RIPRODUZIONE"
+                        isFocused -> "PREMI OK"
+                        else -> "LIVE"
+                    },
+                    color = if (isFocused || selected) LiveBlueLight else LiveMuted,
                     fontSize = 9.sp,
-                    fontWeight =
-                        FontWeight.Medium,
+                    fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Medium,
                     letterSpacing = 0.6.sp
                 )
             }
-
-            if (selected) {
+            if (selected || isFocused) {
                 Box(
                     modifier = Modifier
-                        .size(7.dp)
-                        .background(
-                            LiveBlueLight,
-                            CircleShape
-                        )
+                        .size(if (isFocused) 8.dp else 7.dp)
+                        .background(LiveBlueLight, CircleShape)
                 )
             }
         }
@@ -1755,66 +1662,48 @@ private fun FavoriteButton(
     isFavorite: Boolean,
     onClick: () -> Unit
 ) {
+    var isFocused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.05f else 1f,
+        label = "favoriteFocusScale"
+    )
+
     Surface(
         modifier = Modifier
+            .scale(scale)
+            .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
             .clickable(onClick = onClick),
-        color =
-            if (isFavorite) {
-                Color(0x261677FF)
-            } else {
-                Color.Transparent
-            },
-        shape =
-            RoundedCornerShape(10.dp),
+        color = when {
+            isFocused -> Color(0xFF102942)
+            isFavorite -> Color(0x261677FF)
+            else -> Color.Transparent
+        },
+        shape = RoundedCornerShape(10.dp),
         border = BorderStroke(
-            1.dp,
-            if (isFavorite) {
-                LiveBlue
-            } else {
-                LiveBorder
+            if (isFocused) 3.dp else 1.dp,
+            when {
+                isFocused -> LiveBlueLight
+                isFavorite -> LiveBlue
+                else -> LiveBorder
             }
         )
     ) {
         Row(
-            modifier = Modifier.padding(
-                horizontal = 13.dp,
-                vertical = 9.dp
-            ),
-            verticalAlignment =
-                Alignment.CenterVertically
+            modifier = Modifier.padding(horizontal = 13.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text =
-                    if (isFavorite) {
-                        "★"
-                    } else {
-                        "☆"
-                    },
-                color =
-                    if (isFavorite) {
-                        LiveBlueLight
-                    } else {
-                        Color.White
-                    },
+                text = if (isFavorite) "★" else "☆",
+                color = if (isFocused || isFavorite) LiveBlueLight else Color.White,
                 fontSize = 15.sp
             )
-
-            Spacer(
-                modifier =
-                    Modifier.width(7.dp)
-            )
-
+            Spacer(Modifier.width(7.dp))
             Text(
-                text =
-                    if (isFavorite) {
-                        "RIMUOVI DAI PREFERITI"
-                    } else {
-                        "AGGIUNGI AI PREFERITI"
-                    },
+                text = if (isFavorite) "RIMUOVI DAI PREFERITI" else "AGGIUNGI AI PREFERITI",
                 color = Color.White,
                 fontSize = 10.sp,
-                fontWeight =
-                    FontWeight.Bold
+                fontWeight = FontWeight.Bold
             )
         }
     }
