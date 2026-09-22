@@ -2,6 +2,7 @@ package com.example.xtreamplayer.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -15,10 +16,13 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.xtreamplayer.R
 import com.example.xtreamplayer.data.LiveStream
 import com.example.xtreamplayer.data.SeriesStream
 import com.example.xtreamplayer.data.VodStream
@@ -39,7 +43,8 @@ private enum class HomeSection {
     HOME,
     LIVE,
     MOVIES,
-    SERIES
+    SERIES,
+    SETTINGS
 }
 
 @Composable
@@ -95,6 +100,9 @@ fun HomeScreen(
                 },
                 onSeriesClick = {
                     currentSection = HomeSection.SERIES
+                },
+                onSettingsClick = {
+                    currentSection = HomeSection.SETTINGS
                 }
             )
         }
@@ -173,6 +181,24 @@ fun HomeScreen(
                 }
             )
         }
+
+        HomeSection.SETTINGS -> {
+            SettingsAccountScreen(
+                vm = vm,
+                onBack = {
+                    currentSection = HomeSection.HOME
+                },
+                onModifyAccount = {
+                    // Il collegamento alla modifica credenziali verrà
+                    // agganciato dopo aver verificato come AppViewModel
+                    // salva e rimuove la sessione.
+                },
+                onLogout = {
+                    // Logout reale nel prossimo passaggio:
+                    // prima leggiamo AppViewModel per non rompere l'auto-login.
+                }
+            )
+        }
     }
 }
 
@@ -181,7 +207,8 @@ private fun HomeMainScreen(
     vm: AppViewModel,
     onLiveClick: () -> Unit,
     onMoviesClick: () -> Unit,
-    onSeriesClick: () -> Unit
+    onSeriesClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
 
     var currentTime by remember {
@@ -458,11 +485,7 @@ private fun HomeMainScreen(
             BottomActionButton(
                 title = "IMPOSTAZIONI",
                 icon = "⚙",
-                onClick = {
-                    // TODO:
-                    // collegheremo qui la schermata
-                    // Impostazioni.
-                }
+                onClick = onSettingsClick
             )
 
             BottomActionButton(
@@ -532,6 +555,291 @@ private fun HomeMainScreen(
                     textAlign = TextAlign.Center
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun SettingsAccountScreen(
+    vm: AppViewModel,
+    onBack: () -> Unit,
+    onModifyAccount: () -> Unit,
+    onLogout: () -> Unit
+) {
+    val username = vm.auth?.user_info?.username?.takeIf { it.isNotBlank() } ?: "—"
+    val expirationRaw = vm.auth?.user_info?.exp_date
+    val expiration = if (!expirationRaw.isNullOrBlank()) {
+        formatExpirationDate(expirationRaw)
+    } else {
+        "—"
+    }
+
+    val server = vm.auth?.server_info?.url?.takeIf { it.isNotBlank() } ?: "—"
+
+    val isExpired = remember(expirationRaw) {
+        expirationRaw?.toLongOrNull()?.let { seconds ->
+            seconds * 1000L < System.currentTimeMillis()
+        } ?: false
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(HomeBackground)
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.future_smart_background),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xB800050B))
+        )
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 34.dp, top = 24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SettingsTvButton(
+                title = "‹",
+                width = 48.dp,
+                onClick = onBack
+            )
+
+            Spacer(Modifier.width(18.dp))
+
+            Column {
+                Text(
+                    text = "FUTURE",
+                    color = Color.White,
+                    fontSize = 23.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = "S M A R T",
+                    color = HomeBlueLight,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 3.sp
+                )
+            }
+
+            Spacer(Modifier.width(34.dp))
+
+            Text(
+                text = "⚙  IMPOSTAZIONI  ›  ACCOUNT",
+                color = Color.White,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.sp
+            )
+        }
+
+        Surface(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .widthIn(max = 760.dp)
+                .fillMaxWidth(0.68f),
+            color = Color(0xD90A1420),
+            shape = RoundedCornerShape(24.dp),
+            border = BorderStroke(1.dp, HomeBlue.copy(alpha = 0.65f)),
+            shadowElevation = 18.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 34.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Surface(
+                    modifier = Modifier.size(70.dp),
+                    shape = RoundedCornerShape(50),
+                    color = Color(0xFF0D2740),
+                    border = BorderStroke(2.dp, HomeBlueLight)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "●",
+                            color = HomeBlueLight,
+                            fontSize = 34.sp
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Text(
+                    text = "IL TUO ACCOUNT",
+                    color = Color.White,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+
+                Text(
+                    text = "Tutte le informazioni del tuo abbonamento",
+                    color = HomeBlueLight,
+                    fontSize = 12.sp
+                )
+
+                Spacer(Modifier.height(18.dp))
+
+                SettingsInfoRow(
+                    icon = "♙",
+                    label = "Username",
+                    value = username
+                )
+                SettingsInfoRow(
+                    icon = "▣",
+                    label = "Server",
+                    value = server
+                )
+                SettingsInfoRow(
+                    icon = "▦",
+                    label = "Scadenza",
+                    value = expiration,
+                    status = if (isExpired) "SCADUTO" else "ATTIVO"
+                )
+
+                Spacer(Modifier.height(22.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(18.dp)
+                ) {
+                    SettingsTvButton(
+                        title = "✎  MODIFICA ACCOUNT",
+                        modifier = Modifier.weight(1f),
+                        onClick = onModifyAccount
+                    )
+                    SettingsTvButton(
+                        title = "↪  ESCI",
+                        modifier = Modifier.weight(1f),
+                        onClick = onLogout
+                    )
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Text(
+                    text = "IL PLAYER CHE FA PER TE",
+                    color = Color.White.copy(alpha = 0.72f),
+                    fontSize = 10.sp,
+                    letterSpacing = 3.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsInfoRow(
+    icon: String,
+    label: String,
+    value: String,
+    status: String? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(54.dp)
+            .background(
+                Color(0xB507111C),
+                RoundedCornerShape(10.dp)
+            )
+            .padding(horizontal = 18.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = icon,
+            color = Color(0xFFD8E9FF),
+            fontSize = 20.sp
+        )
+
+        Spacer(Modifier.width(14.dp))
+
+        Text(
+            text = label,
+            color = Color(0xFFD8E0EA),
+            fontSize = 13.sp,
+            modifier = Modifier.width(110.dp)
+        )
+
+        Text(
+            text = value,
+            color = Color.White,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f)
+        )
+
+        if (status != null) {
+            Surface(
+                color = if (status == "ATTIVO") {
+                    Color(0xCC087A36)
+                } else {
+                    Color(0xCC8E1D25)
+                },
+                shape = RoundedCornerShape(50)
+            ) {
+                Text(
+                    text = status,
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                )
+            }
+        }
+    }
+
+    Spacer(Modifier.height(7.dp))
+}
+
+@Composable
+private fun SettingsTvButton(
+    title: String,
+    modifier: Modifier = Modifier,
+    width: androidx.compose.ui.unit.Dp? = null,
+    onClick: () -> Unit
+) {
+    var isFocused by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.035f else 1f,
+        label = "settingsButtonFocusScale"
+    )
+
+    Surface(
+        modifier = modifier
+            .then(if (width != null) Modifier.width(width) else Modifier)
+            .height(52.dp)
+            .scale(scale)
+            .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
+            .clickable { onClick() },
+        color = if (isFocused) Color(0xFF123A60) else Color(0xD907111C),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(
+            width = if (isFocused) 3.dp else 1.dp,
+            color = if (isFocused) HomeBlueLight else HomeBorder
+        )
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = title,
+                color = if (isFocused) HomeBlueLight else Color.White,
+                fontSize = if (title == "‹") 30.sp else 13.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = if (title == "‹") 0.sp else 0.8.sp
+            )
         }
     }
 }
