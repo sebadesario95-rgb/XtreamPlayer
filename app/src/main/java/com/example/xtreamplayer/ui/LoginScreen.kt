@@ -1,6 +1,10 @@
 package com.example.xtreamplayer.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,6 +14,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -197,7 +211,7 @@ private fun BrandPanel(
             Spacer(Modifier.width(14.dp))
 
             Text(
-                text = "XTREAM PLAYER",
+                text = "FUTURE SMART",
                 color = Color.White,
                 fontSize = if (compact) 24.sp else 31.sp,
                 fontWeight = FontWeight.ExtraBold,
@@ -209,7 +223,7 @@ private fun BrandPanel(
             Spacer(Modifier.height(28.dp))
 
             Text(
-                text = "Il tuo intrattenimento.\nUn solo player.",
+                text = "IL PLAYER\nCHE FA PER TE",
                 color = Color.White,
                 fontSize = 34.sp,
                 lineHeight = 40.sp,
@@ -219,7 +233,7 @@ private fun BrandPanel(
             Spacer(Modifier.height(14.dp))
 
             Text(
-                text = "Accedi al tuo servizio Xtream autorizzato e ritrova Live TV, Film e Serie in un'esperienza semplice e moderna.",
+                text = "Live TV, Film e Serie in un'esperienza semplice, moderna e pensata per il grande schermo.",
                 color = LoginMuted,
                 fontSize = 16.sp,
                 lineHeight = 24.sp,
@@ -237,7 +251,7 @@ private fun BrandPanel(
             Spacer(Modifier.height(10.dp))
 
             Text(
-                text = "Accedi al tuo intrattenimento.",
+                text = "IL PLAYER CHE FA PER TE",
                 color = LoginMuted,
                 fontSize = 14.sp
             )
@@ -345,19 +359,10 @@ private fun LoginCard(
                         PasswordVisualTransformation()
                     },
                 trailingContent = {
-                    TextButton(
-                        onClick = onPasswordVisibilityChange,
-                        contentPadding = PaddingValues(horizontal = 8.dp)
-                    ) {
-                        Text(
-                            text =
-                                if (passwordVisible) "NASCONDI"
-                                else "MOSTRA",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = LoginBlue
-                        )
-                    }
+                    LoginSmallTvButton(
+                        text = if (passwordVisible) "NASCONDI" else "MOSTRA",
+                        onClick = onPasswordVisibilityChange
+                    )
                 }
             )
 
@@ -380,36 +385,11 @@ private fun LoginCard(
 
             Spacer(Modifier.height(22.dp))
 
-            Button(
-                onClick = onLogin,
+            LoginTvButton(
                 enabled = canLogin,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = LoginBlue,
-                    contentColor = Color.White,
-                    disabledContainerColor =
-                        LoginBlueDark.copy(alpha = 0.45f),
-                    disabledContentColor =
-                        Color.White.copy(alpha = 0.55f)
-                )
-            ) {
-                if (loading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        strokeWidth = 2.dp,
-                        color = Color.White
-                    )
-                } else {
-                    Text(
-                        text = "ACCEDI",
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp
-                    )
-                }
-            }
+                loading = loading,
+                onClick = onLogin
+            )
 
             Spacer(Modifier.height(18.dp))
 
@@ -430,6 +410,91 @@ private fun LoginCard(
 }
 
 @Composable
+private fun LoginTvButton(
+    enabled: Boolean,
+    loading: Boolean,
+    onClick: () -> Unit
+) {
+    var isFocused by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused && enabled) 1.025f else 1f,
+        label = "loginButtonFocusScale"
+    )
+
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(54.dp)
+            .scale(scale)
+            .onFocusChanged { isFocused = it.isFocused },
+        shape = RoundedCornerShape(12.dp),
+        border = if (isFocused && enabled) {
+            BorderStroke(3.dp, Color(0xFF58A6FF))
+        } else {
+            null
+        },
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isFocused && enabled) Color(0xFF2389FF) else LoginBlue,
+            contentColor = Color.White,
+            disabledContainerColor = LoginBlueDark.copy(alpha = 0.45f),
+            disabledContentColor = Color.White.copy(alpha = 0.55f)
+        )
+    ) {
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(22.dp),
+                strokeWidth = 2.dp,
+                color = Color.White
+            )
+        } else {
+            Text(
+                text = "ACCEDI",
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoginSmallTvButton(
+    text: String,
+    onClick: () -> Unit
+) {
+    var isFocused by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.06f else 1f,
+        label = "loginSmallButtonFocusScale"
+    )
+
+    Surface(
+        modifier = Modifier
+            .scale(scale)
+            .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
+            .clickable { onClick() },
+        color = if (isFocused) Color(0xFF153454) else Color.Transparent,
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(
+            width = if (isFocused) 2.dp else 0.dp,
+            color = if (isFocused) Color(0xFF58A6FF) else Color.Transparent
+        )
+    ) {
+        Text(
+            text = text,
+            color = if (isFocused) Color(0xFF8CC4FF) else LoginBlue,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp)
+        )
+    }
+}
+
+@Composable
 private fun LoginTextField(
     value: String,
     onValueChange: (String) -> Unit,
@@ -440,36 +505,107 @@ private fun LoginTextField(
         VisualTransformation.None,
     trailingContent: (@Composable (() -> Unit))? = null
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        label = {
-            Text(label)
-        },
-        placeholder = {
-            Text(
-                placeholder,
-                color = LoginMuted.copy(alpha = 0.55f)
-            )
-        },
-        keyboardOptions = KeyboardOptions(
-            keyboardType = keyboardType
-        ),
-        visualTransformation = visualTransformation,
-        trailingIcon = trailingContent,
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = Color.White,
-            unfocusedTextColor = Color.White,
-            focusedContainerColor = LoginField,
-            unfocusedContainerColor = LoginField,
-            focusedBorderColor = LoginBlue,
-            unfocusedBorderColor = Color(0xFF273242),
-            focusedLabelColor = LoginBlue,
-            unfocusedLabelColor = LoginMuted,
-            cursorColor = LoginBlue
-        )
+    var containerFocused by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf(false) }
+
+    val textFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    val scale by animateFloatAsState(
+        targetValue = if (containerFocused || editing) 1.02f else 1f,
+        label = "loginFieldFocusScale"
     )
+
+    LaunchedEffect(editing) {
+        if (editing) {
+            textFocusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale)
+            .onFocusChanged {
+                containerFocused = it.isFocused
+                if (!it.hasFocus) {
+                    editing = false
+                }
+            }
+            .onKeyEvent { event ->
+                if (
+                    !editing &&
+                    event.type == KeyEventType.KeyUp &&
+                    (
+                        event.key == Key.Enter ||
+                        event.key == Key.NumPadEnter ||
+                        event.key == Key.DirectionCenter
+                    )
+                ) {
+                    editing = true
+                    true
+                } else {
+                    false
+                }
+            }
+            .focusable(),
+        color = LoginField,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(
+            width = if (containerFocused || editing) 3.dp else 1.dp,
+            color = if (containerFocused || editing) {
+                Color(0xFF58A6FF)
+            } else {
+                Color(0xFF273242)
+            }
+        )
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(textFocusRequester)
+                .onFocusChanged {
+                    if (!it.isFocused && editing) {
+                        editing = false
+                    }
+                },
+            enabled = editing,
+            singleLine = true,
+            label = {
+                Text(label)
+            },
+            placeholder = {
+                Text(
+                    placeholder,
+                    color = LoginMuted.copy(alpha = 0.55f)
+                )
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = keyboardType
+            ),
+            visualTransformation = visualTransformation,
+            trailingIcon = trailingContent,
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                disabledTextColor = Color.White,
+                focusedContainerColor = LoginField,
+                unfocusedContainerColor = LoginField,
+                disabledContainerColor = LoginField,
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                disabledBorderColor = Color.Transparent,
+                focusedLabelColor = LoginBlue,
+                unfocusedLabelColor = LoginMuted,
+                disabledLabelColor = if (containerFocused) LoginBlue else LoginMuted,
+                cursorColor = LoginBlue,
+                disabledPlaceholderColor = LoginMuted.copy(alpha = 0.55f)
+            )
+        )
+    }
 }
+
