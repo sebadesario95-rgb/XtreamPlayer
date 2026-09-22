@@ -201,13 +201,10 @@ fun HomeScreen(
                     currentSection = HomeSection.SERIES
                 },
                 onModifyAccount = {
-                    // Il collegamento alla modifica credenziali verrà
-                    // agganciato dopo aver verificato come AppViewModel
-                    // salva e rimuove la sessione.
+                    vm.beginAccountEdit()
                 },
                 onLogout = {
-                    // Logout reale nel prossimo passaggio:
-                    // prima leggiamo AppViewModel per non rompere l'auto-login.
+                    vm.logout()
                 }
             )
         }
