@@ -11,10 +11,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.xtreamplayer.data.LiveStream
 import com.example.xtreamplayer.data.SeriesStream
 import com.example.xtreamplayer.data.VodStream
+import com.example.xtreamplayer.ui.CatalogLoadingScreen
 import com.example.xtreamplayer.ui.HomeScreen
 import com.example.xtreamplayer.ui.LoginScreen
 import com.example.xtreamplayer.ui.PlayerScreen
 import com.example.xtreamplayer.viewmodel.AppViewModel
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
 
@@ -37,6 +39,29 @@ class MainActivity : ComponentActivity() {
 
                 val vm: AppViewModel =
                     viewModel()
+
+                // Tiene visibile la schermata di sincronizzazione
+                // abbastanza a lungo da mostrare realmente il 100%.
+                var showCatalogSync by remember {
+                    mutableStateOf(false)
+                }
+
+                LaunchedEffect(
+                    vm.catalogSyncActive,
+                    vm.catalogSyncProgress
+                ) {
+                    if (vm.catalogSyncActive) {
+                        showCatalogSync = true
+                    } else if (
+                        showCatalogSync &&
+                        vm.catalogSyncProgress >= 100
+                    ) {
+                        delay(700L)
+                        showCatalogSync = false
+                    } else if (!vm.loggedIn) {
+                        showCatalogSync = false
+                    }
+                }
 
                 // -----------------------------------------
                 // PLAYER
@@ -95,6 +120,20 @@ class MainActivity : ComponentActivity() {
                         }
                     )
 
+                }
+
+                // -----------------------------------------
+                // SINCRONIZZAZIONE CATALOGO
+                // -----------------------------------------
+
+                else if (
+                    vm.catalogSyncActive ||
+                    showCatalogSync
+                ) {
+
+                    CatalogLoadingScreen(
+                        vm = vm
+                    )
                 }
 
                 // -----------------------------------------
