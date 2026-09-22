@@ -2,6 +2,7 @@ package com.example.xtreamplayer.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -23,7 +24,9 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -32,6 +35,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.xtreamplayer.R
 import com.example.xtreamplayer.data.Credentials
 import com.example.xtreamplayer.viewmodel.AppViewModel
 
@@ -57,40 +61,40 @@ fun LoginScreen(vm: AppViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        Color(0xFF020305),
-                        LoginBackground,
-                        Color(0xFF071326),
-                        Color(0xFF02050A)
-                    )
-                )
-            )
+            .background(LoginBackground)
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.future_smart_background),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
 
         Box(
             modifier = Modifier
-                .size(430.dp)
-                .offset(x = (-170).dp, y = (-150).dp)
+                .fillMaxSize()
                 .background(
-                    Brush.radialGradient(
-                        listOf(Color(0x551677FF), Color.Transparent)
-                    ),
-                    CircleShape
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.34f),
+                            Color(0xFF02060D).copy(alpha = 0.46f),
+                            Color.Black.copy(alpha = 0.58f)
+                        )
+                    )
                 )
         )
 
         Box(
             modifier = Modifier
-                .size(520.dp)
-                .align(Alignment.BottomEnd)
-                .offset(x = 210.dp, y = 230.dp)
+                .fillMaxSize()
                 .background(
-                    Brush.radialGradient(
-                        listOf(Color(0x441677FF), Color.Transparent)
-                    ),
-                    CircleShape
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.10f),
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.30f)
+                        )
+                    )
                 )
         )
 
