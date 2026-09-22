@@ -1,40 +1,33 @@
-name: Build APK
+name: Generate FUTURE SMART Key
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
-  build:
+  generate-key:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Install Android SDK packages
+      - name: Generate FUTURE SMART keystore
         run: |
-          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses
-          ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          keytool -genkeypair \
+            -keystore future-smart.jks \
+            -storepass "FutureSmart2026Key" \
+            -keypass "FutureSmart2026Key" \
+            -alias future-smart \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=FUTURE SMART, OU=Development, O=FUTURE SMART, L=Taranto, C=IT"
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-
-      - name: Build APK
-        run: gradle --no-daemon assembleDebug
-
-      - name: Upload APK
+      - name: Upload FUTURE SMART keystore
         uses: actions/upload-artifact@v4
         with:
-          name: XtreamPlayer-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: FUTURE-SMART-KEYSTORE
+          path: future-smart.jks
