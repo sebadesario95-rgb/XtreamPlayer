@@ -178,7 +178,7 @@ fun LiveContentScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(20.dp),
                 horizontalArrangement =
-                    Arrangement.spacedBy(16.dp),
+                    Arrangement.spacedBy(12.dp),
                 verticalArrangement =
                     Arrangement.spacedBy(18.dp)
             ) {
@@ -439,7 +439,7 @@ fun MovieContentScreen(
                 LazyVerticalGrid(
                     columns =
                         GridCells.Adaptive(
-                            minSize = 115.dp
+                            minSize = 95.dp
                         ),
                     state = movieGridState,
                     modifier =
@@ -452,7 +452,7 @@ fun MovieContentScreen(
                             bottom = 24.dp
                         ),
                     horizontalArrangement =
-                        Arrangement.spacedBy(12.dp),
+                        Arrangement.spacedBy(10.dp),
                     verticalArrangement =
                         Arrangement.spacedBy(16.dp)
                 ) {
