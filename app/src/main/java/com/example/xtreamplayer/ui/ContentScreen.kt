@@ -1142,32 +1142,14 @@ private fun MoviePosterCard(
         Text(
             text = movie.name ?: "Film",
             color = Color.White,
-            fontSize = 14.sp,
+            fontSize = 11.sp,
+            lineHeight = 13.sp,
             fontWeight =
                 FontWeight.SemiBold,
-            maxLines = 1,
+            maxLines = 2,
             overflow =
                 TextOverflow.Ellipsis
         )
-
-        movie.rating
-            ?.takeIf {
-                it.isNotBlank()
-            }
-            ?.let { rating ->
-                Spacer(
-                    modifier =
-                        Modifier.height(3.dp)
-                )
-
-                Text(
-                    text = "★ $rating",
-                    color =
-                        MovieTextSecondary,
-                    fontSize = 12.sp,
-                    maxLines = 1
-                )
-            }
     }
 }
 
