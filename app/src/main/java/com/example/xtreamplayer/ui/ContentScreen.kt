@@ -3,8 +3,6 @@ package com.example.xtreamplayer.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
@@ -12,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +30,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -368,6 +368,19 @@ fun MovieContentScreen(
         }
     }
 
+    /*
+     * Stato esplicito della griglia FILM.
+     * Su Fire TV il focus search di Compose può fermarsi all'ultima riga
+     * attualmente composta. Manteniamo quindi lo stato della LazyVerticalGrid
+     * e i FocusRequester dei poster per poter comporre e focalizzare
+     * esplicitamente la riga successiva/precedente.
+     */
+    val movieGridState = rememberLazyGridState()
+    val movieFocusRequesters = remember {
+        mutableStateMapOf<Int, FocusRequester>()
+    }
+    val movieGridScope = rememberCoroutineScope()
+
     MovieCatalogLayout(
         categories = categories,
         selectedCategoryId = selectedCategoryId,
@@ -428,6 +441,7 @@ fun MovieContentScreen(
                         GridCells.Adaptive(
                             minSize = 145.dp
                         ),
+                    state = movieGridState,
                     modifier =
                         Modifier.fillMaxSize(),
                     contentPadding =
@@ -443,14 +457,22 @@ fun MovieContentScreen(
                         Arrangement.spacedBy(22.dp)
                 ) {
                     items(
-                        items = filteredMovies,
-                        key = {
-                            it.stream_id
-                                ?: it.num
-                                ?: it.name
-                                ?: ""
+                        count = filteredMovies.size,
+                        key = { index ->
+                            val movie = filteredMovies[index]
+                            movie.stream_id
+                                ?: movie.num
+                                ?: movie.name
+                                ?: index
                         }
-                    ) { movie ->
+                    ) { index ->
+
+                        val movie = filteredMovies[index]
+
+                        val posterFocusRequester =
+                            movieFocusRequesters.getOrPut(index) {
+                                FocusRequester()
+                            }
 
                         MoviePosterCard(
                             movie = movie,
@@ -458,6 +480,48 @@ fun MovieContentScreen(
                                 movie.stream_id?.let {
                                     vm.isFavoriteMovie(it)
                                 } == true,
+                            focusRequester = posterFocusRequester,
+                            onVerticalMove = { direction ->
+                                /*
+                                 * Ricaviamo quante colonne sono realmente
+                                 * presenti dalla griglia Adaptive corrente.
+                                 */
+                                val columns =
+                                    movieGridState.layoutInfo.visibleItemsInfo
+                                        .maxOfOrNull { it.column + 1 }
+                                        ?.coerceAtLeast(1)
+                                        ?: 1
+
+                                val targetIndex =
+                                    (index + (direction * columns))
+                                        .coerceIn(
+                                            0,
+                                            filteredMovies.lastIndex
+                                        )
+
+                                if (targetIndex != index) {
+                                    movieGridScope.launch {
+                                        /*
+                                         * Prima componiamo/portiamo in vista
+                                         * il poster destinazione...
+                                         */
+                                        movieGridState.scrollToItem(targetIndex)
+
+                                        /*
+                                         * ...poi lasciamo un frame a Compose
+                                         * per creare il nuovo item e infine
+                                         * gli assegniamo il focus.
+                                         */
+                                        withFrameNanos { }
+
+                                        movieFocusRequesters[targetIndex]
+                                            ?.requestFocus()
+                                    }
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
                             onClick = {
                                 /*
                                  * IMPORTANTISSIMO:
@@ -947,6 +1011,8 @@ private fun MovieSidebarItem(
 private fun MoviePosterCard(
     movie: VodStream,
     favorite: Boolean,
+    focusRequester: FocusRequester,
+    onVerticalMove: (Int) -> Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
@@ -954,24 +1020,27 @@ private fun MoviePosterCard(
         mutableStateOf(false)
     }
 
-    val bringIntoViewRequester = remember {
-        BringIntoViewRequester()
-    }
-
-    val coroutineScope = rememberCoroutineScope()
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .bringIntoViewRequester(bringIntoViewRequester)
+            .focusRequester(focusRequester)
             .scale(if (focused) 1.035f else 1f)
             .onFocusChanged {
                 focused = it.isFocused
+            }
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown) {
+                    when (event.key) {
+                        Key.DirectionDown ->
+                            onVerticalMove(1)
 
-                if (it.isFocused) {
-                    coroutineScope.launch {
-                        bringIntoViewRequester.bringIntoView()
+                        Key.DirectionUp ->
+                            onVerticalMove(-1)
+
+                        else -> false
                     }
+                } else {
+                    false
                 }
             }
             .border(
