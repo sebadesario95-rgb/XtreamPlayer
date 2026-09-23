@@ -439,7 +439,7 @@ fun MovieContentScreen(
                 LazyVerticalGrid(
                     columns =
                         GridCells.Adaptive(
-                            minSize = 145.dp
+                            minSize = 115.dp
                         ),
                     state = movieGridState,
                     modifier =
@@ -452,9 +452,9 @@ fun MovieContentScreen(
                             bottom = 24.dp
                         ),
                     horizontalArrangement =
-                        Arrangement.spacedBy(16.dp),
+                        Arrangement.spacedBy(12.dp),
                     verticalArrangement =
-                        Arrangement.spacedBy(22.dp)
+                        Arrangement.spacedBy(16.dp)
                 ) {
                     items(
                         count = filteredMovies.size,
