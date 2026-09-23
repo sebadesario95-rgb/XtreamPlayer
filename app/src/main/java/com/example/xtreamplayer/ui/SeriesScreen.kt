@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +18,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -28,6 +40,7 @@ import com.example.xtreamplayer.data.Category
 import com.example.xtreamplayer.data.SeriesEpisode
 import com.example.xtreamplayer.data.SeriesStream
 import com.example.xtreamplayer.viewmodel.AppViewModel
+import kotlinx.coroutines.launch
 
 /*
  * Palette legacy del dettaglio Serie attuale.
@@ -178,6 +191,17 @@ fun SeriesContentScreen(
         }
     }
 
+    /*
+     * Navigazione Fire TV robusta come FILM V2:
+     * la LazyVerticalGrid viene scrollata esplicitamente quando il D-pad
+     * deve raggiungere una riga non ancora composta.
+     */
+    val seriesGridState = rememberLazyGridState()
+    val seriesFocusRequesters = remember {
+        mutableStateMapOf<Int, FocusRequester>()
+    }
+    val seriesGridScope = rememberCoroutineScope()
+
     SeriesCatalogLayout(
         categories = categories,
         selectedCategoryId = selectedCategoryId,
@@ -231,8 +255,9 @@ fun SeriesContentScreen(
             else -> {
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(
-                        minSize = 145.dp
+                        minSize = 95.dp
                     ),
+                    state = seriesGridState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         start = 22.dp,
@@ -241,25 +266,60 @@ fun SeriesContentScreen(
                         bottom = 24.dp
                     ),
                     horizontalArrangement =
-                        Arrangement.spacedBy(16.dp),
+                        Arrangement.spacedBy(10.dp),
                     verticalArrangement =
-                        Arrangement.spacedBy(22.dp)
+                        Arrangement.spacedBy(12.dp)
                 ) {
                     items(
-                        items = filteredSeries,
-                        key = {
-                            it.series_id
-                                ?: it.num
-                                ?: it.name
-                                ?: ""
+                        count = filteredSeries.size,
+                        key = { index ->
+                            val item = filteredSeries[index]
+                            item.series_id
+                                ?: item.num
+                                ?: item.name
+                                ?: index
                         }
-                    ) { item ->
+                    ) { index ->
+                        val item = filteredSeries[index]
+
+                        val posterFocusRequester =
+                            seriesFocusRequesters.getOrPut(index) {
+                                FocusRequester()
+                            }
+
                         SeriesPosterCard(
                             series = item,
                             favorite =
                                 item.series_id?.let {
                                     vm.isFavoriteSeries(it)
                                 } == true,
+                            focusRequester = posterFocusRequester,
+                            onVerticalMove = { direction ->
+                                val columns =
+                                    seriesGridState.layoutInfo.visibleItemsInfo
+                                        .maxOfOrNull { it.column + 1 }
+                                        ?.coerceAtLeast(1)
+                                        ?: 1
+
+                                val targetIndex =
+                                    (index + (direction * columns))
+                                        .coerceIn(
+                                            0,
+                                            filteredSeries.lastIndex
+                                        )
+
+                                if (targetIndex != index) {
+                                    seriesGridScope.launch {
+                                        seriesGridState.scrollToItem(targetIndex)
+                                        withFrameNanos { }
+                                        seriesFocusRequesters[targetIndex]
+                                            ?.requestFocus()
+                                    }
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
                             onClick = {
                                 /*
                                  * Nessun caricamento durante focus/scroll.
@@ -550,11 +610,26 @@ private fun SeriesSidebarItem(
     selected: Boolean,
     onClick: () -> Unit
 ) {
+    var focused by remember {
+        mutableStateOf(false)
+    }
+
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .onFocusChanged {
+                focused = it.isFocused
+            }
+            .border(
+                width = if (focused) 3.dp else 0.dp,
+                color = if (focused) SeriesBlue else Color.Transparent,
+                shape = RoundedCornerShape(10.dp)
+            ),
         color =
             if (selected) {
                 SeriesBlue
+            } else if (focused) {
+                SeriesBlue.copy(alpha = 0.30f)
             } else {
                 Color.Transparent
             },
@@ -566,7 +641,7 @@ private fun SeriesSidebarItem(
             color = Color.White,
             fontSize = 14.sp,
             fontWeight =
-                if (selected) {
+                if (selected || focused) {
                     FontWeight.Bold
                 } else {
                     FontWeight.Medium
@@ -586,16 +661,45 @@ private fun SeriesSidebarItem(
 private fun SeriesPosterCard(
     series: SeriesStream,
     favorite: Boolean,
+    focusRequester: FocusRequester,
+    onVerticalMove: (Int) -> Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
+    var focused by remember {
+        mutableStateOf(false)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .focusRequester(focusRequester)
+            .scale(if (focused) 1.035f else 1f)
+            .onFocusChanged {
+                focused = it.isFocused
+            }
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown) {
+                    when (event.key) {
+                        Key.DirectionDown -> onVerticalMove(1)
+                        Key.DirectionUp -> onVerticalMove(-1)
+                        else -> false
+                    }
+                } else {
+                    false
+                }
+            }
+            .border(
+                width = if (focused) 3.dp else 0.dp,
+                color = if (focused) SeriesBlue else Color.Transparent,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .padding(if (focused) 3.dp else 0.dp)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
             )
+            .focusable()
     ) {
         Card(
             modifier = Modifier
@@ -630,17 +734,17 @@ private fun SeriesPosterCard(
                     Surface(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(8.dp),
+                            .padding(6.dp),
                         color = Color.Black.copy(alpha = 0.72f),
-                        shape = RoundedCornerShape(18.dp)
+                        shape = RoundedCornerShape(16.dp)
                     ) {
                         Text(
                             text = "★",
                             color = SeriesBlue,
-                            fontSize = 18.sp,
+                            fontSize = 14.sp,
                             modifier = Modifier.padding(
-                                horizontal = 8.dp,
-                                vertical = 4.dp
+                                horizontal = 6.dp,
+                                vertical = 3.dp
                             )
                         )
                     }
@@ -648,29 +752,17 @@ private fun SeriesPosterCard(
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
 
         Text(
             text = series.name ?: "Serie TV",
             color = Color.White,
-            fontSize = 14.sp,
+            fontSize = 11.sp,
+            lineHeight = 13.sp,
             fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
-
-        series.rating
-            ?.takeIf { it.isNotBlank() }
-            ?.let { rating ->
-                Spacer(Modifier.height(3.dp))
-
-                Text(
-                    text = "★ $rating",
-                    color = SeriesTextSecondary,
-                    fontSize = 12.sp,
-                    maxLines = 1
-                )
-            }
     }
 }
 
