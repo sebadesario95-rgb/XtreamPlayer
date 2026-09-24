@@ -949,11 +949,29 @@ private fun SeriesDetailScreen(
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
+                var detailBackFocused by remember {
+                    mutableStateOf(false)
+                }
+
                 Surface(
                     onClick = onBack,
-                    modifier = Modifier.size(46.dp),
+                    modifier = Modifier
+                        .size(46.dp)
+                        .scale(if (detailBackFocused) 1.06f else 1f)
+                        .onFocusChanged {
+                            detailBackFocused = it.isFocused
+                        },
                     shape = RoundedCornerShape(23.dp),
-                    color = Color(0xFF111A27)
+                    color =
+                        if (detailBackFocused) {
+                            SeriesBlue.copy(alpha = 0.32f)
+                        } else {
+                            Color(0xFF111A27)
+                        },
+                    border = androidx.compose.foundation.BorderStroke(
+                        if (detailBackFocused) 3.dp else 1.dp,
+                        if (detailBackFocused) SeriesBlue else Color.Transparent
+                    )
                 ) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -1100,19 +1118,33 @@ private fun SeriesDetailScreen(
                         Spacer(Modifier.height(14.dp))
 
                         if (seriesId != null) {
+                            var favoriteButtonFocused by remember {
+                                mutableStateOf(false)
+                            }
+
                             Surface(
                                 onClick = {
                                     vm.toggleFavoriteSeries(seriesId)
                                 },
-                                modifier = Modifier.width(220.dp),
-                                color = Color.Black.copy(alpha = 0.32f),
+                                modifier = Modifier
+                                    .width(220.dp)
+                                    .scale(if (favoriteButtonFocused) 1.025f else 1f)
+                                    .onFocusChanged {
+                                        favoriteButtonFocused = it.isFocused
+                                    },
+                                color =
+                                    if (favoriteButtonFocused) {
+                                        SeriesBlue.copy(alpha = 0.22f)
+                                    } else {
+                                        Color.Black.copy(alpha = 0.32f)
+                                    },
                                 shape = RoundedCornerShape(10.dp),
                                 border = androidx.compose.foundation.BorderStroke(
-                                    1.dp,
-                                    if (favorite) {
-                                        SeriesBlue
-                                    } else {
-                                        Color.White.copy(alpha = 0.22f)
+                                    if (favoriteButtonFocused) 3.dp else 1.dp,
+                                    when {
+                                        favoriteButtonFocused -> SeriesBlue
+                                        favorite -> SeriesBlue
+                                        else -> Color.White.copy(alpha = 0.22f)
                                     }
                                 )
                             ) {
@@ -1257,17 +1289,35 @@ private fun SeriesDetailScreen(
                                         selectedSeason ==
                                             season
 
+                                    var seasonFocused by remember(season) {
+                                        mutableStateOf(false)
+                                    }
+
                                     Surface(
                                         onClick = {
                                             selectedSeason =
                                                 season
                                         },
-                                        color =
-                                            if (selected) {
-                                                SeriesBlue
-                                            } else {
-                                                Color(0xFF111A27)
+                                        modifier = Modifier
+                                            .scale(if (seasonFocused) 1.035f else 1f)
+                                            .onFocusChanged {
+                                                seasonFocused = it.isFocused
                                             },
+                                        color =
+                                            when {
+                                                selected -> SeriesBlue
+                                                seasonFocused ->
+                                                    SeriesBlue.copy(alpha = 0.28f)
+                                                else -> Color(0xFF111A27)
+                                            },
+                                        border = androidx.compose.foundation.BorderStroke(
+                                            if (seasonFocused) 3.dp else 1.dp,
+                                            if (seasonFocused) {
+                                                Color(0xFF55C7FF)
+                                            } else {
+                                                Color.Transparent
+                                            }
+                                        ),
                                         shape =
                                             RoundedCornerShape(
                                                 9.dp
@@ -1460,13 +1510,35 @@ private fun CinematicEpisodeCard(
                 ?.let { "★ $it" }
         )
 
+    var focused by remember {
+        mutableStateOf(false)
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(112.dp),
+            .height(112.dp)
+            .scale(if (focused) 1.012f else 1f)
+            .onFocusChanged {
+                focused = it.isFocused
+            }
+            .border(
+                width = if (focused) 3.dp else 1.dp,
+                color =
+                    if (focused) {
+                        Color(0xFF55C7FF)
+                    } else {
+                        Color.White.copy(alpha = 0.06f)
+                    },
+                shape = RoundedCornerShape(12.dp)
+            ),
         colors = CardDefaults.cardColors(
             containerColor =
-                Color(0xCC0C1420)
+                if (focused) {
+                    SeriesBlue.copy(alpha = 0.20f)
+                } else {
+                    Color(0xCC0C1420)
+                }
         ),
         onClick = onClick,
         shape = RoundedCornerShape(12.dp)
