@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -35,6 +36,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -802,16 +804,29 @@ private fun MovieSearchField(
     val keyboardController =
         LocalSoftwareKeyboardController.current
 
+    val focusManager =
+        LocalFocusManager.current
+
     /*
-     * Chiude SOLO la modalità scrittura.
+     * Fine ricerca TV:
+     * 1) chiude la tastiera;
+     * 2) esce dalla modalità editing;
+     * 3) sposta SUBITO il focus fuori dal TextField verso il contenuto
+     *    sottostante, così il successivo D-pad lavora sui poster.
      *
-     * Il focus resta sul campo ricerca, che torna readOnly:
-     * in questo modo il D-pad può poi scendere normalmente
-     * verso i risultati senza perdere la ricerca corrente.
+     * Il problema precedente era proprio qui: la tastiera si chiudeva,
+     * ma il focus restava prigioniero nel TextField.
      */
-    fun finishEditing() {
-        editing = false
+    fun finishEditingAndLeaveSearch() {
         keyboardController?.hide()
+        editing = false
+
+        /*
+         * Il campo ricerca è nella top bar e i poster sono sotto.
+         * MoveFocus(Down) usa la normale navigazione Compose TV e
+         * consegna il focus al primo elemento focalizzabile sottostante.
+         */
+        focusManager.moveFocus(FocusDirection.Down)
     }
 
     LaunchedEffect(editing) {
@@ -822,12 +837,11 @@ private fun MovieSearchField(
     }
 
     /*
-     * BACK mentre la tastiera è aperta:
-     * chiude la tastiera e NON lascia propagare il BACK
-     * alla schermata Film/Home.
+     * BACK durante la scrittura deve comportarsi come "fine ricerca",
+     * NON come BACK della schermata Film/Home.
      */
     BackHandler(enabled = editing) {
-        finishEditing()
+        finishEditingAndLeaveSearch()
     }
 
     OutlinedTextField(
@@ -839,7 +853,8 @@ private fun MovieSearchField(
                 focused = it.isFocused
 
                 if (!it.isFocused && editing) {
-                    finishEditing()
+                    editing = false
+                    keyboardController?.hide()
                 }
             }
             .onKeyEvent { event ->
@@ -852,20 +867,10 @@ private fun MovieSearchField(
                     )
                 ) {
                     if (!editing) {
-                        /*
-                         * TV standard:
-                         * il campo è focalizzato ma la tastiera è chiusa.
-                         * OK entra in modalità scrittura.
-                         */
                         editing = true
                         true
                     } else {
-                        /*
-                         * Se siamo già in scrittura, OK/ENTER equivale
-                         * a "fine ricerca": chiudiamo la tastiera,
-                         * manteniamo query e risultati e consumiamo l'evento.
-                         */
-                        finishEditing()
+                        finishEditingAndLeaveSearch()
                         true
                     }
                 } else {
@@ -879,21 +884,14 @@ private fun MovieSearchField(
             ),
         readOnly = !editing,
         singleLine = true,
-
-        /*
-         * Le tastiere Android/Fire TV possono consegnare il tasto
-         * di conferma come IME action invece che come KeyEvent.
-         * Gestiamo quindi anche questa strada.
-         */
         keyboardOptions = KeyboardOptions(
             imeAction = ImeAction.Search
         ),
         keyboardActions = KeyboardActions(
             onSearch = {
-                finishEditing()
+                finishEditingAndLeaveSearch()
             }
         ),
-
         leadingIcon = {
             Text(
                 text = "⌕",
