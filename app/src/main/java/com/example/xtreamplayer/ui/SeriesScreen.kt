@@ -7,6 +7,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -20,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -29,10 +32,12 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -374,6 +379,28 @@ private fun SeriesCatalogLayout(
     val keyboardController =
         LocalSoftwareKeyboardController.current
 
+    val focusManager =
+        LocalFocusManager.current
+
+    /*
+     * Stessa logica già testata e approvata nella sezione FILM:
+     * chiudiamo la tastiera, usciamo dall'editing e spostiamo
+     * esplicitamente il focus verso il contenuto sottostante.
+     */
+    fun finishSearchEditing() {
+        keyboardController?.hide()
+        searchEditing = false
+        focusManager.moveFocus(FocusDirection.Down)
+    }
+
+    /*
+     * BACK mentre stiamo scrivendo chiude soltanto la ricerca:
+     * non deve propagarsi alla schermata e tornare alla Home.
+     */
+    BackHandler(enabled = searchEditing) {
+        finishSearchEditing()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -449,33 +476,65 @@ private fun SeriesCatalogLayout(
                     .onFocusChanged {
                         searchFocused = it.isFocused
 
-                        if (!it.isFocused) {
+                        if (!it.isFocused && searchEditing) {
                             searchEditing = false
                             keyboardController?.hide()
                         }
                     }
                     .onKeyEvent { event ->
                         if (
-                            event.type == KeyEventType.KeyDown &&
-                            !searchEditing &&
+                            event.type == KeyEventType.KeyUp &&
                             (
                                 event.key == Key.Enter ||
+                                    event.key == Key.NumPadEnter ||
                                     event.key == Key.DirectionCenter
                             )
                         ) {
-                            searchEditing = true
-                            keyboardController?.show()
-                            true
+                            if (!searchEditing) {
+                                /*
+                                 * Campo focalizzato, tastiera chiusa:
+                                 * OK entra in modalità scrittura.
+                                 */
+                                searchEditing = true
+                                keyboardController?.show()
+                                true
+                            } else {
+                                /*
+                                 * OK/ENTER durante la scrittura:
+                                 * chiude tastiera e porta il focus
+                                 * fuori dalla Search verso i risultati.
+                                 */
+                                finishSearchEditing()
+                                true
+                            }
                         } else {
                             false
                         }
-                    },
+                    }
+                    .border(
+                        width = if (searchFocused) 3.dp else 0.dp,
+                        color = if (searchFocused) SeriesBlue else Color.Transparent,
+                        shape = RoundedCornerShape(14.dp)
+                    ),
                 readOnly = !searchEditing,
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Search
+                ),
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        finishSearchEditing()
+                    }
+                ),
                 leadingIcon = {
                     Text(
                         text = "⌕",
-                        color = SeriesTextSecondary,
+                        color =
+                            if (searchFocused) {
+                                SeriesBlue
+                            } else {
+                                SeriesTextSecondary
+                            },
                         fontSize = 24.sp
                     )
                 },
