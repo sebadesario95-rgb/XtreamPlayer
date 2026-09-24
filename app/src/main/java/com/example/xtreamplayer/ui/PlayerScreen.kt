@@ -1,7 +1,11 @@
 package com.example.xtreamplayer.ui
 
 import android.net.Uri
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.view.View
+import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -33,8 +37,142 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import java.util.WeakHashMap
 
 private val PlayerFocusBlue = Color(0xFF1677FF)
+
+private const val PLAYER_LED_STROKE_PX = 4
+
+/*
+ * Applica un LED cyan ai controlli Android nativi del PlayerView
+ * senza sostituire layout, controller o logica Media3.
+ *
+ * Usiamo il foreground della View focalizzata e lo ripristiniamo
+ * appena il focus si sposta. In questo modo play/pausa, seek e gli
+ * altri controlli continuano a essere quelli originali Media3.
+ */
+private fun installMedia3TvFocusLed(playerView: PlayerView) {
+    val originalForegrounds =
+        WeakHashMap<View, Drawable?>()
+
+    var lastFocusedView: View? = null
+
+    fun isInsidePlayer(view: View?): Boolean {
+        var current = view
+
+        while (current != null) {
+            if (current === playerView) {
+                return true
+            }
+
+            current =
+                (current.parent as? View)
+        }
+
+        return false
+    }
+
+    fun restore(view: View?) {
+        if (view == null) return
+
+        if (originalForegrounds.containsKey(view)) {
+            view.foreground =
+                originalForegrounds.remove(view)
+        }
+
+        view.scaleX = 1f
+        view.scaleY = 1f
+    }
+
+    fun highlight(view: View?) {
+        if (view == null) return
+        if (view === playerView) return
+        if (!isInsidePlayer(view)) return
+
+        originalForegrounds.putIfAbsent(
+            view,
+            view.foreground
+        )
+
+        view.foreground =
+            GradientDrawable().apply {
+                shape =
+                    GradientDrawable.RECTANGLE
+
+                setColor(
+                    android.graphics.Color.TRANSPARENT
+                )
+
+                setStroke(
+                    PLAYER_LED_STROKE_PX,
+                    android.graphics.Color.rgb(
+                        22,
+                        119,
+                        255
+                    )
+                )
+
+                cornerRadius = 18f
+            }
+
+        view.scaleX = 1.08f
+        view.scaleY = 1.08f
+    }
+
+    val focusListener =
+        ViewTreeObserver.OnGlobalFocusChangeListener {
+                oldFocus,
+                newFocus ->
+
+            if (
+                oldFocus === lastFocusedView ||
+                isInsidePlayer(oldFocus)
+            ) {
+                restore(oldFocus)
+            }
+
+            if (isInsidePlayer(newFocus)) {
+                highlight(newFocus)
+                lastFocusedView = newFocus
+            } else {
+                lastFocusedView = null
+            }
+        }
+
+    playerView.viewTreeObserver
+        .addOnGlobalFocusChangeListener(
+            focusListener
+        )
+
+    playerView.addOnAttachStateChangeListener(
+        object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(
+                v: View
+            ) = Unit
+
+            override fun onViewDetachedFromWindow(
+                v: View
+            ) {
+                restore(lastFocusedView)
+
+                if (
+                    playerView.viewTreeObserver
+                        .isAlive
+                ) {
+                    playerView.viewTreeObserver
+                        .removeOnGlobalFocusChangeListener(
+                            focusListener
+                        )
+                }
+
+                playerView
+                    .removeOnAttachStateChangeListener(
+                        this
+                    )
+            }
+        }
+    )
+}
 
 @Composable
 fun PlayerScreen(
@@ -99,6 +237,13 @@ fun PlayerScreen(
                     controllerShowTimeoutMs = 3000
 
                     controllerAutoShow = true
+
+                    /*
+                     * LED TV anche sui controlli nativi Media3.
+                     * Non cambiamo il controller: osserviamo soltanto
+                     * quale View riceve il focus dal telecomando.
+                     */
+                    installMedia3TvFocusLed(this)
 
                     setControllerVisibilityListener(
                         PlayerView.ControllerVisibilityListener { visibility ->
