@@ -3,7 +3,6 @@ package com.example.xtreamplayer.ui
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
-import android.view.KeyEvent
 import android.view.View
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
@@ -38,6 +37,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -269,6 +273,11 @@ fun PlayerScreen(
         mutableStateOf(false)
     }
 
+    /*
+     * Riferimento al PlayerView nativo.
+     * Serve al contenitore Compose per mostrare direttamente
+     * i controlli Media3 quando arriva OK dal telecomando.
+     */
     var nativePlayerView by remember {
         mutableStateOf<PlayerView?>(null)
     }
@@ -415,6 +424,36 @@ fun PlayerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            /*
+             * FIRE TV:
+             * intercettiamo OK a livello della schermata intera, PRIMA
+             * che l'evento venga consegnato al focus corrente.
+             *
+             * Se i controlli sono nascosti li mostriamo direttamente.
+             * Se sono già visibili restituiamo false, quindi Media3
+             * continua a gestire normalmente Play/Pausa, seek, ecc.
+             *
+             * Durante la scelta Continua/Riparti non intercettiamo nulla:
+             * i due pulsanti Compose mantengono il loro normale OK.
+             */
+            .onPreviewKeyEvent { event ->
+                val isConfirmKey =
+                    event.key == Key.DirectionCenter ||
+                        event.key == Key.Enter ||
+                        event.key == Key.NumPadEnter
+
+                if (
+                    !resumeChoiceVisible &&
+                    event.type == KeyEventType.KeyDown &&
+                    isConfirmKey &&
+                    nativePlayerView?.isControllerFullyVisible == false
+                ) {
+                    nativePlayerView?.showController()
+                    true
+                } else {
+                    false
+                }
+            }
     ) {
 
         AndroidView(
@@ -424,52 +463,20 @@ fun PlayerScreen(
                 PlayerView(ctx).apply {
                     this.player = player
 
-                    /*
-                     * FIRE TV / ANDROID TV
-                     *
-                     * Il PlayerView occupa tutto lo schermo e deve essere
-                     * direttamente focalizzabile. In più intercettiamo
-                     * esplicitamente OK/ENTER sul PlayerView: se i controlli
-                     * Media3 sono nascosti li mostriamo, se sono già visibili
-                     * lasciamo l'evento a Media3 così i suoi pulsanti continuano
-                     * a funzionare normalmente.
-                     */
-                    isFocusable = true
-                    isFocusableInTouchMode = true
-
                     useController = true
 
                     controllerShowTimeoutMs = 3000
 
                     controllerAutoShow = true
 
+                    /*
+                     * Conserviamo il riferimento. L'OK viene gestito
+                     * dal contenitore Compose sopra, quindi non dipendiamo
+                     * dal focus interno dei controlli Media3.
+                     */
                     nativePlayerView = this
 
-                    setOnKeyListener { _, keyCode, event ->
-                        val isConfirmKey =
-                            keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                                keyCode == KeyEvent.KEYCODE_ENTER ||
-                                keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER
-
-                        if (
-                            isConfirmKey &&
-                            event.action == KeyEvent.ACTION_DOWN &&
-                            !isControllerFullyVisible
-                        ) {
-                            showController()
-                            true
-                        } else {
-                            false
-                        }
-                    }
-
                     installMedia3TvFocusLed(this)
-
-                    if (!resumeChoiceVisible) {
-                        post {
-                            requestFocus()
-                        }
-                    }
 
                     setControllerVisibilityListener(
                         PlayerView.ControllerVisibilityListener { visibility ->
@@ -572,10 +579,6 @@ fun PlayerScreen(
                     playbackStarted = true
                     resumeChoiceVisible = false
 
-                    /*
-                     * Il pulsante Compose appena premuto sta per sparire:
-                     * riconsegniamo il focus al PlayerView nativo.
-                     */
                     nativePlayerView?.post {
                         nativePlayerView?.requestFocus()
                     }
