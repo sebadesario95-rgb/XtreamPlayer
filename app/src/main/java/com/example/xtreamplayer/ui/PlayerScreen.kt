@@ -268,6 +268,16 @@ fun PlayerScreen(
         mutableStateOf(false)
     }
 
+    /*
+     * Manteniamo il riferimento al PlayerView nativo.
+     * Dopo la schermata "Continua la visione" il focus Compose rimaneva
+     * sul pulsante ormai rimosso: il telecomando quindi non riusciva più
+     * a riaprire i controlli Media3 con OK.
+     */
+    var nativePlayerView by remember {
+        mutableStateOf<PlayerView?>(null)
+    }
+
     var resumeChoiceVisible by remember(savedPosition) {
         mutableStateOf(
             savedPosition >= PLAYER_MIN_RESUME_MS
@@ -419,11 +429,23 @@ fun PlayerScreen(
                 PlayerView(ctx).apply {
                     this.player = player
 
+                    /*
+                     * TV/Fire TV:
+                     * il PlayerView deve poter riprendere il focus dopo
+                     * l'overlay Compose "Continua la visione".
+                     */
+                    isFocusable = true
+                    isFocusableInTouchMode = true
+                    descendantFocusability =
+                        android.view.ViewGroup.FOCUS_AFTER_DESCENDANTS
+
                     useController = true
 
                     controllerShowTimeoutMs = 3000
 
                     controllerAutoShow = true
+
+                    nativePlayerView = this
 
                     installMedia3TvFocusLed(this)
 
@@ -527,6 +549,10 @@ fun PlayerScreen(
 
                     playbackStarted = true
                     resumeChoiceVisible = false
+
+                    nativePlayerView?.post {
+                        nativePlayerView?.requestFocus()
+                    }
                 },
                 onRestart = {
                     clearSavedProgress()
@@ -537,6 +563,10 @@ fun PlayerScreen(
 
                     playbackStarted = true
                     resumeChoiceVisible = false
+
+                    nativePlayerView?.post {
+                        nativePlayerView?.requestFocus()
+                    }
                 }
             )
         }
