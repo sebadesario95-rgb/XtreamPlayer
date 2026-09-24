@@ -1,10 +1,9 @@
 package com.example.xtreamplayer.ui
 
-import android.net.Uri
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.view.View
-import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
@@ -12,15 +11,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,28 +33,34 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import kotlinx.coroutines.delay
 import java.util.WeakHashMap
 
 private val PlayerFocusBlue = Color(0xFF1677FF)
 
 private const val PLAYER_LED_STROKE_PX = 4
+private const val PLAYER_PROGRESS_PREFS = "future_smart_playback_progress"
+private const val PLAYER_PROGRESS_PREFIX = "position_"
+private const val PLAYER_MIN_RESUME_MS = 15_000L
+private const val PLAYER_FINISHED_REMAINING_MS = 30_000L
+private const val PLAYER_FINISHED_PERCENT = 0.95
 
 /*
  * Applica un LED cyan ai controlli Android nativi del PlayerView
  * senza sostituire layout, controller o logica Media3.
- *
- * Usiamo il foreground della View focalizzata e lo ripristiniamo
- * appena il focus si sposta. In questo modo play/pausa, seek e gli
- * altri controlli continuano a essere quelli originali Media3.
  */
 private fun installMedia3TvFocusLed(playerView: PlayerView) {
     val originalForegrounds =
@@ -182,12 +193,50 @@ fun PlayerScreen(
     val context =
         androidx.compose.ui.platform.LocalContext.current
 
+    val progressPrefs = remember {
+        context.getSharedPreferences(
+            PLAYER_PROGRESS_PREFS,
+            android.content.Context.MODE_PRIVATE
+        )
+    }
+
+    /*
+     * STEP 1:
+     * per ora la chiave persistente è la URL completa dello stream.
+     * Questo rende già il salvataggio reale e persistente.
+     *
+     * Nei prossimi step Film/Serie potranno passare un contentKey stabile
+     * (movie:<id> / episode:<id>) senza cambiare il motore qui sotto.
+     */
+    val progressKey = remember(url) {
+        PLAYER_PROGRESS_PREFIX + url
+    }
+
+    val savedPosition = remember(progressKey) {
+        progressPrefs.getLong(
+            progressKey,
+            0L
+        )
+    }
+
     var controlsVisible by remember {
         mutableStateOf(false)
     }
 
     var backButtonFocused by remember {
         mutableStateOf(false)
+    }
+
+    var resumeChoiceVisible by remember(savedPosition) {
+        mutableStateOf(
+            savedPosition >= PLAYER_MIN_RESUME_MS
+        )
+    }
+
+    var playbackStarted by remember(savedPosition) {
+        mutableStateOf(
+            savedPosition < PLAYER_MIN_RESUME_MS
+        )
     }
 
     val player = remember(url) {
@@ -201,21 +250,110 @@ fun PlayerScreen(
                 )
 
                 prepare()
-                playWhenReady = true
+
+                /*
+                 * Se esiste una posizione salvata valida aspettiamo
+                 * la scelta dell'utente prima di avviare.
+                 */
+                playWhenReady =
+                    savedPosition < PLAYER_MIN_RESUME_MS
             }
+    }
+
+    fun clearSavedProgress() {
+        progressPrefs
+            .edit()
+            .remove(progressKey)
+            .apply()
+    }
+
+    fun saveCurrentProgress() {
+        val position =
+            player.currentPosition
+                .coerceAtLeast(0L)
+
+        val duration =
+            player.duration
+
+        if (position < PLAYER_MIN_RESUME_MS) {
+            clearSavedProgress()
+            return
+        }
+
+        val hasValidDuration =
+            duration > 0L &&
+                duration != androidx.media3.common.C.TIME_UNSET
+
+        val almostFinished =
+            hasValidDuration &&
+                (
+                    duration - position <=
+                        PLAYER_FINISHED_REMAINING_MS ||
+                        position.toDouble() /
+                            duration.toDouble() >=
+                        PLAYER_FINISHED_PERCENT
+                )
+
+        if (almostFinished) {
+            clearSavedProgress()
+        } else {
+            progressPrefs
+                .edit()
+                .putLong(
+                    progressKey,
+                    position
+                )
+                .apply()
+        }
+    }
+
+    /*
+     * Salvataggio periodico mentre il contenuto è in riproduzione.
+     * SharedPreferences rende la posizione persistente anche dopo
+     * chiusura dell'app o riavvio del dispositivo.
+     */
+    LaunchedEffect(
+        player,
+        playbackStarted
+    ) {
+        while (playbackStarted) {
+            delay(5_000L)
+
+            if (
+                player.playbackState !=
+                    Player.STATE_ENDED
+            ) {
+                saveCurrentProgress()
+            }
+        }
     }
 
     DisposableEffect(player) {
         onDispose {
+            if (
+                player.playbackState ==
+                    Player.STATE_ENDED
+            ) {
+                clearSavedProgress()
+            } else {
+                saveCurrentProgress()
+            }
+
             player.release()
         }
     }
 
     /*
      * BACK fisico SACRO:
-     * continua a tornare esattamente alla schermata precedente.
+     * se è aperta la scelta "continua/riparti", BACK chiude il player
+     * e torna alla schermata precedente.
+     * Durante la visione salva prima la posizione corrente.
      */
     BackHandler {
+        if (playbackStarted) {
+            saveCurrentProgress()
+        }
+
         onBack()
     }
 
@@ -238,11 +376,6 @@ fun PlayerScreen(
 
                     controllerAutoShow = true
 
-                    /*
-                     * LED TV anche sui controlli nativi Media3.
-                     * Non cambiamo il controller: osserviamo soltanto
-                     * quale View riceve il focus dal telecomando.
-                     */
                     installMedia3TvFocusLed(this)
 
                     setControllerVisibilityListener(
@@ -265,14 +398,10 @@ fun PlayerScreen(
             }
         )
 
-        /*
-         * Il pulsante BACK Compose resta sincronizzato con la visibilità
-         * dei controlli Media3, come nella versione funzionante.
-         *
-         * Aggiungiamo soltanto il feedback TV:
-         * quando il telecomando gli assegna il focus compare il LED cyan.
-         */
-        if (controlsVisible) {
+        if (
+            controlsVisible &&
+            !resumeChoiceVisible
+        ) {
 
             Surface(
                 modifier = Modifier
@@ -309,6 +438,7 @@ fun PlayerScreen(
                         shape = CircleShape
                     )
                     .clickable {
+                        saveCurrentProgress()
                         onBack()
                     }
                     .focusable(),
@@ -337,6 +467,187 @@ fun PlayerScreen(
                     )
                 }
             }
+        }
+
+        if (resumeChoiceVisible) {
+            ResumePlaybackChoice(
+                onContinue = {
+                    player.seekTo(savedPosition)
+                    player.playWhenReady = true
+                    player.play()
+
+                    playbackStarted = true
+                    resumeChoiceVisible = false
+                },
+                onRestart = {
+                    clearSavedProgress()
+
+                    player.seekTo(0L)
+                    player.playWhenReady = true
+                    player.play()
+
+                    playbackStarted = true
+                    resumeChoiceVisible = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ResumePlaybackChoice(
+    onContinue: () -> Unit,
+    onRestart: () -> Unit
+) {
+    val continueFocusRequester =
+        remember {
+            FocusRequester()
+        }
+
+    var continueFocused by remember {
+        mutableStateOf(false)
+    }
+
+    var restartFocused by remember {
+        mutableStateOf(false)
+    }
+
+    LaunchedEffect(Unit) {
+        continueFocusRequester.requestFocus()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Color.Black.copy(
+                    alpha = 0.78f
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            modifier = Modifier.width(620.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = Color(0xFF07111F).copy(
+                alpha = 0.98f
+            ),
+            shadowElevation = 18.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 34.dp,
+                        vertical = 32.dp
+                    ),
+                horizontalAlignment =
+                    Alignment.CenterHorizontally,
+                verticalArrangement =
+                    Arrangement.spacedBy(18.dp)
+            ) {
+                Text(
+                    text = "VUOI CONTINUARE LA VISIONE?",
+                    color = Color.White,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+
+                ResumeChoiceButton(
+                    text =
+                        "CONTINUA DA DOVE ERI RIMASTO",
+                    focused = continueFocused,
+                    modifier = Modifier
+                        .focusRequester(
+                            continueFocusRequester
+                        )
+                        .onFocusChanged {
+                            continueFocused =
+                                it.isFocused
+                        },
+                    onClick = onContinue
+                )
+
+                ResumeChoiceButton(
+                    text =
+                        "RIPRODUCI DALL’INIZIO",
+                    focused = restartFocused,
+                    modifier = Modifier
+                        .onFocusChanged {
+                            restartFocused =
+                                it.isFocused
+                        },
+                    onClick = onRestart
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResumeChoiceButton(
+    text: String,
+    focused: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .scale(
+                if (focused) {
+                    1.025f
+                } else {
+                    1f
+                }
+            )
+            .border(
+                width =
+                    if (focused) {
+                        3.dp
+                    } else {
+                        1.dp
+                    },
+                color =
+                    if (focused) {
+                        PlayerFocusBlue
+                    } else {
+                        Color(0xFF26364B)
+                    },
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clickable(
+                onClick = onClick
+            )
+            .focusable(),
+        shape = RoundedCornerShape(14.dp),
+        color =
+            if (focused) {
+                PlayerFocusBlue.copy(
+                    alpha = 0.28f
+                )
+            } else {
+                Color(0xFF0B1726)
+            }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 24.dp,
+                    vertical = 17.dp
+                ),
+            contentAlignment =
+                Alignment.Center
+        ) {
+            Text(
+                text = text,
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
