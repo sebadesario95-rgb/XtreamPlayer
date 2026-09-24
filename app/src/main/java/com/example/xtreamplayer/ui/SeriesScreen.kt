@@ -360,6 +360,20 @@ private fun SeriesCatalogLayout(
     onBack: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    /*
+     * Ricerca TV:
+     * il focus D-pad illumina soltanto il campo.
+     * La tastiera si apre SOLO dopo OK/Enter/DirectionCenter.
+     */
+    var searchEditing by remember {
+        mutableStateOf(false)
+    }
+    var searchFocused by remember {
+        mutableStateOf(false)
+    }
+    val keyboardController =
+        LocalSoftwareKeyboardController.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -431,7 +445,32 @@ private fun SeriesCatalogLayout(
                 onValueChange = onSearchQueryChange,
                 modifier = Modifier
                     .weight(1f)
-                    .height(52.dp),
+                    .height(52.dp)
+                    .onFocusChanged {
+                        searchFocused = it.isFocused
+
+                        if (!it.isFocused) {
+                            searchEditing = false
+                            keyboardController?.hide()
+                        }
+                    }
+                    .onKeyEvent { event ->
+                        if (
+                            event.type == KeyEventType.KeyDown &&
+                            !searchEditing &&
+                            (
+                                event.key == Key.Enter ||
+                                    event.key == Key.DirectionCenter
+                            )
+                        ) {
+                            searchEditing = true
+                            keyboardController?.show()
+                            true
+                        } else {
+                            false
+                        }
+                    },
+                readOnly = !searchEditing,
                 singleLine = true,
                 leadingIcon = {
                     Text(
