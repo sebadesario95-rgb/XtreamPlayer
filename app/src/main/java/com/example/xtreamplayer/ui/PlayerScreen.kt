@@ -3,6 +3,7 @@ package com.example.xtreamplayer.ui
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
@@ -268,12 +269,6 @@ fun PlayerScreen(
         mutableStateOf(false)
     }
 
-    /*
-     * Manteniamo il riferimento al PlayerView nativo.
-     * Dopo la schermata "Continua la visione" il focus Compose rimaneva
-     * sul pulsante ormai rimosso: il telecomando quindi non riusciva più
-     * a riaprire i controlli Media3 con OK.
-     */
     var nativePlayerView by remember {
         mutableStateOf<PlayerView?>(null)
     }
@@ -430,14 +425,17 @@ fun PlayerScreen(
                     this.player = player
 
                     /*
-                     * TV/Fire TV:
-                     * il PlayerView deve poter riprendere il focus dopo
-                     * l'overlay Compose "Continua la visione".
+                     * FIRE TV / ANDROID TV
+                     *
+                     * Il PlayerView occupa tutto lo schermo e deve essere
+                     * direttamente focalizzabile. In più intercettiamo
+                     * esplicitamente OK/ENTER sul PlayerView: se i controlli
+                     * Media3 sono nascosti li mostriamo, se sono già visibili
+                     * lasciamo l'evento a Media3 così i suoi pulsanti continuano
+                     * a funzionare normalmente.
                      */
                     isFocusable = true
                     isFocusableInTouchMode = true
-                    descendantFocusability =
-                        android.view.ViewGroup.FOCUS_AFTER_DESCENDANTS
 
                     useController = true
 
@@ -447,7 +445,31 @@ fun PlayerScreen(
 
                     nativePlayerView = this
 
+                    setOnKeyListener { _, keyCode, event ->
+                        val isConfirmKey =
+                            keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                                keyCode == KeyEvent.KEYCODE_ENTER ||
+                                keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER
+
+                        if (
+                            isConfirmKey &&
+                            event.action == KeyEvent.ACTION_DOWN &&
+                            !isControllerFullyVisible
+                        ) {
+                            showController()
+                            true
+                        } else {
+                            false
+                        }
+                    }
+
                     installMedia3TvFocusLed(this)
+
+                    if (!resumeChoiceVisible) {
+                        post {
+                            requestFocus()
+                        }
+                    }
 
                     setControllerVisibilityListener(
                         PlayerView.ControllerVisibilityListener { visibility ->
@@ -550,6 +572,10 @@ fun PlayerScreen(
                     playbackStarted = true
                     resumeChoiceVisible = false
 
+                    /*
+                     * Il pulsante Compose appena premuto sta per sparire:
+                     * riconsegniamo il focus al PlayerView nativo.
+                     */
                     nativePlayerView?.post {
                         nativePlayerView?.requestFocus()
                     }
