@@ -201,22 +201,63 @@ fun PlayerScreen(
     }
 
     /*
-     * STEP 1:
-     * per ora la chiave persistente è la URL completa dello stream.
-     * Questo rende già il salvataggio reale e persistente.
+     * STEP 2:
+     * ricaviamo dalla URL Xtream il tipo reale e lo stream ID.
      *
-     * Nei prossimi step Film/Serie potranno passare un contentKey stabile
-     * (movie:<id> / episode:<id>) senza cambiare il motore qui sotto.
+     * Esempi:
+     * /movie/utente/password/12345.mp4  -> movie:12345
+     * /series/utente/password/67890.mp4 -> series:67890
+     *
+     * In questo modo la memoria non dipende più da dominio,
+     * protocollo, username/password o estensione del file.
+     *
+     * LIVE viene escluso: "Continua la visione" è solo FILM/SERIE.
      */
-    val progressKey = remember(url) {
-        PLAYER_PROGRESS_PREFIX + url
+    val stableContentKey = remember(url) {
+        runCatching {
+            val uri = Uri.parse(url)
+            val segments = uri.pathSegments
+
+            val type =
+                when {
+                    segments.contains("movie") ->
+                        "movie"
+
+                    segments.contains("series") ->
+                        "series"
+
+                    else ->
+                        null
+                }
+
+            val id =
+                segments.lastOrNull()
+                    ?.substringBeforeLast(".")
+                    ?.takeIf { value ->
+                        value.isNotBlank()
+                    }
+
+            if (type != null && id != null) {
+                "$type:$id"
+            } else {
+                null
+            }
+        }.getOrNull()
+    }
+
+    val progressKey = remember(stableContentKey) {
+        stableContentKey?.let {
+            PLAYER_PROGRESS_PREFIX + it
+        }
     }
 
     val savedPosition = remember(progressKey) {
-        progressPrefs.getLong(
-            progressKey,
-            0L
-        )
+        progressKey?.let {
+            progressPrefs.getLong(
+                it,
+                0L
+            )
+        } ?: 0L
     }
 
     var controlsVisible by remember {
@@ -261,13 +302,21 @@ fun PlayerScreen(
     }
 
     fun clearSavedProgress() {
+        val key =
+            progressKey
+                ?: return
+
         progressPrefs
             .edit()
-            .remove(progressKey)
+            .remove(key)
             .apply()
     }
 
     fun saveCurrentProgress() {
+        val key =
+            progressKey
+                ?: return
+
         val position =
             player.currentPosition
                 .coerceAtLeast(0L)
@@ -300,7 +349,7 @@ fun PlayerScreen(
             progressPrefs
                 .edit()
                 .putLong(
-                    progressKey,
+                    key,
                     position
                 )
                 .apply()
