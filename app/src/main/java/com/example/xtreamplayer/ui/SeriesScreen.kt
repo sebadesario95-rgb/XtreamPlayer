@@ -640,7 +640,7 @@ private fun SeriesSidebarItem(
         Text(
             text = text,
             color = Color.White,
-            fontSize = 14.sp,
+            fontSize = 11.sp,
             fontWeight =
                 if (selected || focused) {
                     FontWeight.Bold
