@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
@@ -190,6 +191,7 @@ private fun installMedia3TvFocusLed(playerView: PlayerView) {
     )
 }
 
+@OptIn(UnstableApi::class)
 @Composable
 fun PlayerScreen(
     url: String,
@@ -464,6 +466,17 @@ fun PlayerScreen(
                     this.player = player
 
                     useController = true
+
+                    /*
+                     * SOTTOTITOLI MEDIA3:
+                     * mostra il pulsante nativo dei sottotitoli nel controller.
+                     * Se il contenuto espone tracce testo, Media3 permette
+                     * di attivarle/disattivarle e scegliere quella disponibile.
+                     *
+                     * Non sostituiamo il controller: velocità, audio,
+                     * focus LED, OK Fire TV e Resume restano invariati.
+                     */
+                    setShowSubtitleButton(true)
 
                     controllerShowTimeoutMs = 3000
 
