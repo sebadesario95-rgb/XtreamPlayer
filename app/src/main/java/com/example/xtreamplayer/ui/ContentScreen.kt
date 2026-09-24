@@ -7,6 +7,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -35,6 +37,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -799,11 +802,32 @@ private fun MovieSearchField(
     val keyboardController =
         LocalSoftwareKeyboardController.current
 
+    /*
+     * Chiude SOLO la modalità scrittura.
+     *
+     * Il focus resta sul campo ricerca, che torna readOnly:
+     * in questo modo il D-pad può poi scendere normalmente
+     * verso i risultati senza perdere la ricerca corrente.
+     */
+    fun finishEditing() {
+        editing = false
+        keyboardController?.hide()
+    }
+
     LaunchedEffect(editing) {
         if (editing) {
             focusRequester.requestFocus()
             keyboardController?.show()
         }
+    }
+
+    /*
+     * BACK mentre la tastiera è aperta:
+     * chiude la tastiera e NON lascia propagare il BACK
+     * alla schermata Film/Home.
+     */
+    BackHandler(enabled = editing) {
+        finishEditing()
     }
 
     OutlinedTextField(
@@ -814,9 +838,8 @@ private fun MovieSearchField(
             .onFocusChanged {
                 focused = it.isFocused
 
-                if (!it.isFocused) {
-                    editing = false
-                    keyboardController?.hide()
+                if (!it.isFocused && editing) {
+                    finishEditing()
                 }
             }
             .onKeyEvent { event ->
@@ -824,15 +847,26 @@ private fun MovieSearchField(
                     event.type == KeyEventType.KeyUp &&
                     (
                         event.key == Key.Enter ||
-                        event.key == Key.NumPadEnter ||
-                        event.key == Key.DirectionCenter
+                            event.key == Key.NumPadEnter ||
+                            event.key == Key.DirectionCenter
                     )
                 ) {
                     if (!editing) {
+                        /*
+                         * TV standard:
+                         * il campo è focalizzato ma la tastiera è chiusa.
+                         * OK entra in modalità scrittura.
+                         */
                         editing = true
                         true
                     } else {
-                        false
+                        /*
+                         * Se siamo già in scrittura, OK/ENTER equivale
+                         * a "fine ricerca": chiudiamo la tastiera,
+                         * manteniamo query e risultati e consumiamo l'evento.
+                         */
+                        finishEditing()
+                        true
                     }
                 } else {
                     false
@@ -845,6 +879,21 @@ private fun MovieSearchField(
             ),
         readOnly = !editing,
         singleLine = true,
+
+        /*
+         * Le tastiere Android/Fire TV possono consegnare il tasto
+         * di conferma come IME action invece che come KeyEvent.
+         * Gestiamo quindi anche questa strada.
+         */
+        keyboardOptions = KeyboardOptions(
+            imeAction = ImeAction.Search
+        ),
+        keyboardActions = KeyboardActions(
+            onSearch = {
+                finishEditing()
+            }
+        ),
+
         leadingIcon = {
             Text(
                 text = "⌕",
