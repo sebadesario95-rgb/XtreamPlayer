@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -1790,6 +1792,17 @@ private fun MovieDetailScreen(
 
     val favorite = streamId?.let { vm.isFavoriteMovie(it) } == true
 
+    // Layout compatto esclusivamente per smartphone: Fire TV invariata.
+    val detailContext = LocalContext.current
+    val detailIsTelevision = remember(detailContext) {
+        (detailContext.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager)
+            .currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
+    }
+    val phoneDetail = !detailIsTelevision
+    val detailScrollState = rememberScrollState()
+    val plotScrollState = rememberScrollState()
+
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1881,14 +1894,23 @@ private fun MovieDetailScreen(
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(start = 42.dp, end = 42.dp, top = 28.dp, bottom = 28.dp),
-                horizontalArrangement = Arrangement.spacedBy(36.dp)
+                    .padding(
+                        start = if (phoneDetail) 20.dp else 42.dp,
+                        end = if (phoneDetail) 20.dp else 42.dp,
+                        top = if (phoneDetail) 10.dp else 28.dp,
+                        bottom = if (phoneDetail) 10.dp else 28.dp
+                    ),
+                horizontalArrangement = Arrangement.spacedBy(if (phoneDetail) 18.dp else 36.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.Center
+                        .fillMaxHeight()
+                        .then(
+                            if (phoneDetail) Modifier.verticalScroll(detailScrollState)
+                            else Modifier
+                        ),
+                    verticalArrangement = if (phoneDetail) Arrangement.Top else Arrangement.Center
                 ) {
                     if (vm.loadingVodInfo) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1910,14 +1932,14 @@ private fun MovieDetailScreen(
                     Text(
                         text = title,
                         color = Color.White,
-                        fontSize = 38.sp,
+                        fontSize = if (phoneDetail) 28.sp else 38.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
 
                     if (metadata.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(if (phoneDetail) 6.dp else 14.dp))
                         Text(
                             text = metadata.joinToString("   •   "),
                             color = MovieTextSecondary,
@@ -1929,14 +1951,19 @@ private fun MovieDetailScreen(
                     }
 
                     if (plot != null) {
-                        Spacer(modifier = Modifier.height(22.dp))
+                        Spacer(modifier = Modifier.height(if (phoneDetail) 8.dp else 22.dp))
                         Text(
+                            modifier = if (phoneDetail) Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 82.dp)
+                                .verticalScroll(plotScrollState)
+                            else Modifier,
                             text = plot,
                             color = Color.White.copy(alpha = 0.86f),
                             fontSize = 15.sp,
                             lineHeight = 22.sp,
-                            maxLines = 6,
-                            overflow = TextOverflow.Ellipsis
+                            maxLines = if (phoneDetail) Int.MAX_VALUE else 6,
+                            overflow = if (phoneDetail) TextOverflow.Clip else TextOverflow.Ellipsis
                         )
                     } else if (!vm.loadingVodInfo && vm.vodInfoError != null) {
                         Spacer(modifier = Modifier.height(18.dp))
@@ -1947,7 +1974,7 @@ private fun MovieDetailScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(26.dp))
+                    Spacer(modifier = Modifier.height(if (phoneDetail) 10.dp else 26.dp))
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1972,8 +1999,8 @@ private fun MovieDetailScreen(
                                 onPlay(url)
                             },
                             modifier = Modifier
-                                .width(178.dp)
-                                .height(48.dp),
+                                .width(if (phoneDetail) 154.dp else 178.dp)
+                                .height(if (phoneDetail) 44.dp else 48.dp),
                             shape = RoundedCornerShape(10.dp),
                             selectedColor = MovieBlue,
                             normalColor = MovieBlue.copy(alpha = 0.78f)
@@ -1992,8 +2019,8 @@ private fun MovieDetailScreen(
                                     vm.toggleFavoriteMovie(streamId)
                                 },
                                 modifier = Modifier
-                                    .width(56.dp)
-                                    .height(48.dp),
+                                    .width(if (phoneDetail) 52.dp else 56.dp)
+                                    .height(if (phoneDetail) 44.dp else 48.dp),
                                 shape = RoundedCornerShape(10.dp),
                                 selectedColor = MovieBlueSoft,
                                 normalColor = Color.Black.copy(alpha = 0.38f)
@@ -2029,7 +2056,7 @@ private fun MovieDetailScreen(
 
                 Card(
                     modifier = Modifier
-                        .width(250.dp)
+                        .width(if (phoneDetail) 205.dp else 250.dp)
                         .fillMaxHeight()
                         .padding(top = 10.dp, bottom = 10.dp)
                         .border(
