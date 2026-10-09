@@ -1,5 +1,9 @@
 package com.example.xtreamplayer.ui
 
+import android.app.UiModeManager
+import android.content.Context
+import android.content.res.Configuration
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -32,6 +36,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.Color
@@ -370,6 +375,12 @@ private fun SeriesCatalogLayout(
      * il focus D-pad illumina soltanto il campo.
      * La tastiera si apre SOLO dopo OK/Enter/DirectionCenter.
      */
+    val context = LocalContext.current
+    val isTelevision = remember(context) {
+        (context.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager)
+            .currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
+    }
+
     var searchEditing by remember {
         mutableStateOf(false)
     }
@@ -516,7 +527,7 @@ private fun SeriesCatalogLayout(
                         color = if (searchFocused) SeriesBlue else Color.Transparent,
                         shape = RoundedCornerShape(14.dp)
                     ),
-                readOnly = !searchEditing,
+                readOnly = isTelevision && !searchEditing,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     imeAction = ImeAction.Search
