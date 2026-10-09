@@ -10,6 +10,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -1012,6 +1014,15 @@ private fun SeriesDetailScreen(
             vm.isFavoriteSeries(it)
         } == true
 
+    // Solo smartphone: il layout e il focus della Fire TV restano originali.
+    val detailContext = LocalContext.current
+    val phoneDetail = remember(detailContext) {
+        (detailContext.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager)
+            .currentModeType != Configuration.UI_MODE_TYPE_TELEVISION
+    }
+    val infoScroll = rememberScrollState()
+
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1184,13 +1195,13 @@ private fun SeriesDetailScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(
-                            start = 34.dp,
-                            end = 34.dp,
-                            top = 24.dp,
-                            bottom = 24.dp
+                            start = if (phoneDetail) 14.dp else 34.dp,
+                            end = if (phoneDetail) 14.dp else 34.dp,
+                            top = if (phoneDetail) 10.dp else 24.dp,
+                            bottom = if (phoneDetail) 10.dp else 24.dp
                         ),
                     horizontalArrangement =
-                        Arrangement.spacedBy(30.dp)
+                        Arrangement.spacedBy(if (phoneDetail) 12.dp else 30.dp)
                 ) {
                     /*
                      * HERO / INFO
@@ -1199,13 +1210,14 @@ private fun SeriesDetailScreen(
                      */
                     Column(
                         modifier = Modifier
-                            .width(330.dp)
+                            .width(if (phoneDetail) 145.dp else 330.dp)
                             .fillMaxHeight()
+                            .then(if (phoneDetail) Modifier.verticalScroll(infoScroll) else Modifier)
                     ) {
                         Card(
                             modifier = Modifier
-                                .width(220.dp)
-                                .height(300.dp)
+                                .width(if (phoneDetail) 112.dp else 220.dp)
+                                .height(if (phoneDetail) 150.dp else 300.dp)
                                 .border(
                                     width = 1.dp,
                                     color = Color.White.copy(alpha = 0.14f),
@@ -1224,7 +1236,7 @@ private fun SeriesDetailScreen(
                             )
                         }
 
-                        Spacer(Modifier.height(14.dp))
+                        Spacer(Modifier.height(if (phoneDetail) 8.dp else 14.dp))
 
                         if (seriesId != null) {
                             var favoriteButtonFocused by remember {
@@ -1236,7 +1248,7 @@ private fun SeriesDetailScreen(
                                     vm.toggleFavoriteSeries(seriesId)
                                 },
                                 modifier = Modifier
-                                    .width(220.dp)
+                                    .width(if (phoneDetail) 145.dp else 220.dp)
                                     .scale(if (favoriteButtonFocused) 1.025f else 1f)
                                     .onFocusChanged {
                                         favoriteButtonFocused = it.isFocused
@@ -1259,8 +1271,8 @@ private fun SeriesDetailScreen(
                             ) {
                                 Row(
                                     modifier = Modifier.padding(
-                                        horizontal = 16.dp,
-                                        vertical = 11.dp
+                                        horizontal = if (phoneDetail) 5.dp else 16.dp,
+                                        vertical = if (phoneDetail) 7.dp else 11.dp
                                     ),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
@@ -1281,7 +1293,7 @@ private fun SeriesDetailScreen(
                                         text = if (favorite) {
                                             "Nei preferiti"
                                         } else {
-                                            "Aggiungi ai preferiti"
+                                            if (phoneDetail) "Preferiti" else "Aggiungi ai preferiti"
                                         },
                                         color = Color.White,
                                         fontSize = 13.sp,
@@ -1297,7 +1309,7 @@ private fun SeriesDetailScreen(
                         Text(
                             text = title,
                             color = Color.White,
-                            fontSize = 26.sp,
+                            fontSize = if (phoneDetail) 18.sp else 26.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
@@ -1349,7 +1361,7 @@ private fun SeriesDetailScreen(
                             Text(
                                 text = "STAGIONI",
                                 color = Color.White,
-                                fontSize = 20.sp,
+                                fontSize = if (phoneDetail) 17.sp else 20.sp,
                                 fontWeight = FontWeight.Bold
                             )
 
@@ -1467,7 +1479,8 @@ private fun SeriesDetailScreen(
                         selectedSeasonInfo
                             ?.overview
                             ?.takeIf {
-                                it.isNotBlank()
+                                it.isNotBlank() &&
+                                    !it.trim().startsWith("http", ignoreCase = true)
                             }
                             ?.let { overview ->
                                 Spacer(
@@ -1502,7 +1515,7 @@ private fun SeriesDetailScreen(
                                         "EPISODI · STAGIONE $it"
                                     } ?: "EPISODI",
                                 color = Color.White,
-                                fontSize = 18.sp,
+                                fontSize = if (phoneDetail) 16.sp else 18.sp,
                                 fontWeight =
                                     FontWeight.Bold
                             )
@@ -1558,6 +1571,7 @@ private fun SeriesDetailScreen(
                                 ) { episode ->
                                     CinematicEpisodeCard(
                                         episode = episode,
+                                        phoneDetail = phoneDetail,
                                         onClick = {
                                             val id =
                                                 episode.id
@@ -1599,6 +1613,7 @@ private fun SeriesDetailScreen(
 @Composable
 private fun CinematicEpisodeCard(
     episode: SeriesEpisode,
+    phoneDetail: Boolean,
     onClick: () -> Unit
 ) {
     val episodeInfo = episode.info
@@ -1626,7 +1641,7 @@ private fun CinematicEpisodeCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(112.dp)
+            .height(if (phoneDetail) 112.dp else 112.dp)
             .scale(if (focused) 1.012f else 1f)
             .onFocusChanged {
                 focused = it.isFocused
@@ -1655,13 +1670,13 @@ private fun CinematicEpisodeCard(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(10.dp),
+                .padding(if (phoneDetail) 7.dp else 10.dp),
             verticalAlignment =
                 Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .width(150.dp)
+                    .width(if (phoneDetail) 80.dp else 150.dp)
                     .fillMaxHeight()
                     .clip(
                         RoundedCornerShape(8.dp)
@@ -1712,7 +1727,7 @@ private fun CinematicEpisodeCard(
                 }
             }
 
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(if (phoneDetail) 8.dp else 14.dp))
 
             Column(
                 modifier =
@@ -1721,10 +1736,10 @@ private fun CinematicEpisodeCard(
                 Text(
                     text = episodeTitle,
                     color = Color.White,
-                    fontSize = 15.sp,
+                    fontSize = if (phoneDetail) 14.sp else 15.sp,
                     fontWeight =
                         FontWeight.SemiBold,
-                    maxLines = 1,
+                    maxLines = if (phoneDetail) 3 else 1,
                     overflow =
                         TextOverflow.Ellipsis
                 )
@@ -1766,7 +1781,7 @@ private fun CinematicEpisodeCard(
                     }
             }
 
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(if (phoneDetail) 5.dp else 12.dp))
 
             Surface(
                 color = SeriesBlue,
@@ -1775,7 +1790,7 @@ private fun CinematicEpisodeCard(
             ) {
                 Box(
                     modifier =
-                        Modifier.size(38.dp),
+                        Modifier.size(if (phoneDetail) 30.dp else 38.dp),
                     contentAlignment =
                         Alignment.Center
                 ) {
