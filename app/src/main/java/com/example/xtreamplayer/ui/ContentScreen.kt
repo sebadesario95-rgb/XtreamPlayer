@@ -1,5 +1,8 @@
 package com.example.xtreamplayer.ui
 
+import android.app.UiModeManager
+import android.content.Context
+import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -36,6 +39,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -807,6 +811,14 @@ private fun MovieSearchField(
     val focusManager =
         LocalFocusManager.current
 
+    // Il touch scrive direttamente sul telefono; la Fire TV conserva
+    // esattamente la modalità OK -> editing originale.
+    val context = LocalContext.current
+    val isTelevision = remember(context) {
+        (context.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager)
+            .currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
+    }
+
     /*
      * Fine ricerca TV:
      * 1) chiude la tastiera;
@@ -882,7 +894,7 @@ private fun MovieSearchField(
                 color = if (focused) MovieBlue else Color.Transparent,
                 shape = RoundedCornerShape(14.dp)
             ),
-        readOnly = !editing,
+        readOnly = isTelevision && !editing,
         singleLine = true,
         keyboardOptions = KeyboardOptions(
             imeAction = ImeAction.Search
