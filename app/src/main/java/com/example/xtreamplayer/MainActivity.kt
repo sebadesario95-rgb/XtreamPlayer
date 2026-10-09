@@ -1,8 +1,15 @@
+
 package com.example.xtreamplayer
 
+import android.app.UiModeManager
+import android.content.Context
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.*
@@ -20,11 +27,26 @@ import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
 
+    private var fullscreenOnPhone = false
+
     override fun onCreate(
         savedInstanceState: Bundle?
     ) {
 
         super.onCreate(savedInstanceState)
+
+        // Fullscreen immersivo SOLO su smartphone/tablet.
+        // Sui dispositivi TV manteniamo il comportamento originale.
+        val uiModeManager =
+            getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
+
+        fullscreenOnPhone =
+            uiModeManager.currentModeType !=
+                Configuration.UI_MODE_TYPE_TELEVISION
+
+        if (fullscreenOnPhone) {
+            enablePhoneFullscreen()
+        }
 
         setContent {
 
@@ -276,5 +298,36 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+
+        if (hasFocus && fullscreenOnPhone) {
+            enablePhoneFullscreen()
+        }
+    }
+
+    private fun enablePhoneFullscreen() {
+
+        WindowCompat.setDecorFitsSystemWindows(
+            window,
+            false
+        )
+
+        val controller =
+            WindowInsetsControllerCompat(
+                window,
+                window.decorView
+            )
+
+        controller.hide(
+            WindowInsetsCompat.Type.statusBars() or
+                WindowInsetsCompat.Type.navigationBars()
+        )
+
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat
+                .BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
 }
