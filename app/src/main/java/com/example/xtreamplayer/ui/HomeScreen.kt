@@ -257,11 +257,14 @@ private fun HomeMainScreen(
 
     val expiration = vm.auth?.user_info?.exp_date
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(HomeBackground)
     ) {
+        // Layout compatto solo su schermi bassi (smartphone landscape).
+        val compactHome = maxHeight < 450.dp
+
         Image(
             painter = painterResource(id = R.drawable.future_smart_home_background),
             contentDescription = null,
@@ -286,7 +289,7 @@ private fun HomeMainScreen(
         Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(end = 42.dp, top = 28.dp),
+                .padding(end = if (compactHome) 18.dp else 42.dp, top = if (compactHome) 10.dp else 28.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
@@ -323,7 +326,7 @@ private fun HomeMainScreen(
                 }
             }
 
-            Spacer(Modifier.width(18.dp))
+            Spacer(Modifier.width(if (compactHome) 10.dp else 18.dp))
 
             Box(
                 modifier = Modifier
@@ -332,12 +335,12 @@ private fun HomeMainScreen(
                     .background(Color.White.copy(alpha = 0.32f))
             )
 
-            Spacer(Modifier.width(18.dp))
+            Spacer(Modifier.width(if (compactHome) 10.dp else 18.dp))
 
             Text(
                 text = currentTime,
                 color = Color.White,
-                fontSize = 22.sp,
+                fontSize = if (compactHome) 17.sp else 22.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -345,15 +348,17 @@ private fun HomeMainScreen(
         Row(
             modifier = Modifier
                 .align(Alignment.Center)
+                .offset(y = if (compactHome) (-20).dp else 0.dp)
                 .fillMaxWidth()
-                .padding(horizontal = 145.dp),
-            horizontalArrangement = Arrangement.spacedBy(22.dp),
+                .padding(horizontal = if (compactHome) 110.dp else 145.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (compactHome) 14.dp else 22.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             CinematicHomeCard(
                 title = "LIVE TV",
                 imageRes = R.drawable.home_live,
                 modifier = Modifier.weight(1f),
+                compact = compactHome,
                 onClick = onLiveClick
             )
 
@@ -361,6 +366,7 @@ private fun HomeMainScreen(
                 title = "FILM",
                 imageRes = R.drawable.home_film,
                 modifier = Modifier.weight(1f),
+                compact = compactHome,
                 onClick = onMoviesClick
             )
 
@@ -368,6 +374,7 @@ private fun HomeMainScreen(
                 title = "SERIE TV",
                 imageRes = R.drawable.home_series,
                 modifier = Modifier.weight(1f),
+                compact = compactHome,
                 onClick = onSeriesClick
             )
         }
@@ -375,7 +382,7 @@ private fun HomeMainScreen(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 42.dp, bottom = 30.dp)
+                .padding(start = if (compactHome) 20.dp else 42.dp, bottom = if (compactHome) 13.dp else 30.dp)
         ) {
             Text(
                 text = if (!expiration.isNullOrBlank()) {
@@ -405,12 +412,13 @@ private fun HomeMainScreen(
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 34.dp, bottom = 22.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(end = if (compactHome) 16.dp else 34.dp, bottom = if (compactHome) 10.dp else 22.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (compactHome) 8.dp else 12.dp)
         ) {
             BottomActionButton(
                 title = "IMPOSTAZIONI",
                 icon = "⚙",
+                compact = compactHome,
                 onClick = onSettingsClick
             )
 
@@ -418,6 +426,7 @@ private fun HomeMainScreen(
                 title = "AGGIORNA",
                 icon = "↻",
                 highlighted = true,
+                compact = compactHome,
                 onClick = {
                     vm.updateCatalog()
                 }
@@ -1049,6 +1058,7 @@ private fun CinematicHomeCard(
     title: String,
     imageRes: Int,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
     onClick: () -> Unit
 ) {
     var isFocused by remember {
@@ -1062,7 +1072,7 @@ private fun CinematicHomeCard(
 
     Card(
         modifier = modifier
-            .height(245.dp)
+            .height(if (compact) 175.dp else 245.dp)
             .scale(scale)
             .onFocusChanged { focusState ->
                 isFocused = focusState.isFocused
@@ -1110,18 +1120,18 @@ private fun CinematicHomeCard(
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 18.dp),
+                    .padding(bottom = if (compact) 10.dp else 18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = title,
                     color = Color.White,
-                    fontSize = 21.sp,
+                    fontSize = if (compact) 16.sp else 21.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 0.8.sp
                 )
 
-                Spacer(Modifier.height(9.dp))
+                Spacer(Modifier.height(if (compact) 5.dp else 9.dp))
 
                 Box(
                     modifier = Modifier
@@ -1146,6 +1156,7 @@ private fun BottomActionButton(
     title: String,
     icon: String,
     highlighted: Boolean = false,
+    compact: Boolean = false,
     onClick: () -> Unit
 ) {
 
@@ -1160,8 +1171,8 @@ private fun BottomActionButton(
 
     Surface(
         modifier = Modifier
-            .width(118.dp)
-            .height(72.dp)
+            .width(if (compact) 102.dp else 118.dp)
+            .height(if (compact) 51.dp else 72.dp)
             .scale(scale)
             .onFocusChanged { focusState ->
                 isFocused = focusState.isFocused
@@ -1200,12 +1211,12 @@ private fun BottomActionButton(
                     highlighted -> HomeBlue
                     else -> Color(0xFFB7C4D4)
                 },
-                fontSize = 25.sp,
+                fontSize = if (compact) 19.sp else 25.sp,
                 fontWeight = FontWeight.Bold
             )
 
             Spacer(
-                modifier = Modifier.height(4.dp)
+                modifier = Modifier.height(if (compact) 2.dp else 4.dp)
             )
 
             Text(
