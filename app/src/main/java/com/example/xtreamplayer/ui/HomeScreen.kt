@@ -7,6 +7,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -18,6 +20,10 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import android.app.UiModeManager
+import android.content.Context
+import android.content.res.Configuration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -493,6 +499,15 @@ private fun SettingsAccountScreen(
     onModifyAccount: () -> Unit,
     onLogout: () -> Unit
 ) {
+    val settingsContext = LocalContext.current
+    val settingsIsTv = remember(settingsContext) {
+        (settingsContext.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager)
+            .currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
+    }
+    val phoneSettings = !settingsIsTv
+    val settingsSidebarScroll = rememberScrollState()
+    val settingsAccountScroll = rememberScrollState()
+
     val username = vm.auth?.user_info?.username?.takeIf { it.isNotBlank() } ?: "—"
     val expirationRaw = vm.auth?.user_info?.exp_date
     val expiration = if (!expirationRaw.isNullOrBlank()) {
@@ -549,7 +564,11 @@ private fun SettingsAccountScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 24.dp)
+                    .then(if (phoneSettings) Modifier.verticalScroll(settingsSidebarScroll) else Modifier)
+                    .padding(
+                        horizontal = if (phoneSettings) 12.dp else 20.dp,
+                        vertical = if (phoneSettings) 12.dp else 24.dp
+                    )
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -648,7 +667,7 @@ private fun SettingsAccountScreen(
                     onClick = {}
                 )
 
-                Spacer(Modifier.weight(1f))
+                if (phoneSettings) Spacer(Modifier.height(12.dp)) else Spacer(Modifier.weight(1f))
 
                 Text(
                     text = "IL PLAYER",
@@ -690,9 +709,10 @@ private fun SettingsAccountScreen(
             Surface(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .padding(horizontal = 52.dp)
+                    .padding(horizontal = if (phoneSettings) 14.dp else 52.dp)
                     .widthIn(max = 720.dp)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .then(if (phoneSettings) Modifier.fillMaxHeight(0.80f) else Modifier),
                 color = Color(0xD90A1420),
                 shape = RoundedCornerShape(24.dp),
                 border = BorderStroke(
@@ -702,10 +722,12 @@ private fun SettingsAccountScreen(
                 shadowElevation = 18.dp
             ) {
                 Column(
-                    modifier = Modifier.padding(
-                        horizontal = 34.dp,
-                        vertical = 24.dp
-                    ),
+                    modifier = Modifier
+                        .then(if (phoneSettings) Modifier.verticalScroll(settingsAccountScroll) else Modifier)
+                        .padding(
+                            horizontal = if (phoneSettings) 16.dp else 34.dp,
+                            vertical = if (phoneSettings) 12.dp else 24.dp
+                        ),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Surface(
