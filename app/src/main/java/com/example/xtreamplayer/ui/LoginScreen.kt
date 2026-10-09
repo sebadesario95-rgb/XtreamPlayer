@@ -57,11 +57,10 @@ fun LoginScreen(vm: AppViewModel) {
     val accountToEdit = if (vm.editingAccount) vm.credentials else null
 
     val context = LocalContext.current
-    val uiModeManager = remember(context) {
-        context.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
+    val isTelevision = remember(context) {
+        (context.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager)
+            .currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
     }
-    val isTelevision =
-        uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
 
     var server by remember(accountToEdit) {
         mutableStateOf(accountToEdit?.serverUrl.orEmpty())
@@ -127,8 +126,6 @@ fun LoginScreen(vm: AppViewModel) {
             val wideLayout = maxWidth >= 760.dp
 
             if (!isTelevision) {
-                // SOLO TELEFONO: il contenuto puo scorrere anche con tastiera aperta.
-                // I rami TV originali non vengono modificati.
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -140,7 +137,6 @@ fun LoginScreen(vm: AppViewModel) {
                         BrandPanel(compact = true)
                         Spacer(Modifier.height(6.dp))
                         LoginCard(
-                            compactMobile = true,
                             server = server,
                             username = username,
                             password = password,
@@ -154,14 +150,9 @@ fun LoginScreen(vm: AppViewModel) {
                             onPasswordChange = { password = it },
                             onPasswordVisibilityChange = { passwordVisible = !passwordVisible },
                             onLogin = {
-                                vm.login(
-                                    Credentials(
-                                        server.trim(),
-                                        username.trim(),
-                                        password
-                                    )
-                                )
-                            }
+                                vm.login(Credentials(server.trim(), username.trim(), password))
+                            },
+                            compactMobile = true
                         )
                         Spacer(Modifier.height(12.dp))
                     }
@@ -406,7 +397,8 @@ private fun LoginCard(
                 onValueChange = onServerChange,
                 label = "Server URL",
                 placeholder = "http://example.com:8080",
-                keyboardType = KeyboardType.Uri
+                keyboardType = KeyboardType.Uri,
+                touchMode = compactMobile
             )
 
             Spacer(Modifier.height(if (compactMobile) 6.dp else 14.dp))
@@ -415,7 +407,8 @@ private fun LoginCard(
                 value = username,
                 onValueChange = onUsernameChange,
                 label = "Username",
-                placeholder = "Il tuo username"
+                placeholder = "Il tuo username",
+                touchMode = compactMobile
             )
 
             Spacer(Modifier.height(if (compactMobile) 6.dp else 14.dp))
@@ -425,6 +418,7 @@ private fun LoginCard(
                 onValueChange = onPasswordChange,
                 label = "Password",
                 placeholder = "La tua password",
+                touchMode = compactMobile,
                 visualTransformation =
                     if (passwordVisible) {
                         VisualTransformation.None
@@ -580,7 +574,8 @@ private fun LoginTextField(
     keyboardType: KeyboardType = KeyboardType.Text,
     visualTransformation: VisualTransformation =
         VisualTransformation.None,
-    trailingContent: (@Composable (() -> Unit))? = null
+    trailingContent: (@Composable (() -> Unit))? = null,
+    touchMode: Boolean = false
 ) {
     var containerFocused by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
@@ -649,7 +644,7 @@ private fun LoginTextField(
                         editing = false
                     }
                 },
-            enabled = editing,
+            enabled = touchMode || editing,
             singleLine = true,
             label = {
                 Text(label)
