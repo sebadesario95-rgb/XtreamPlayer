@@ -122,7 +122,7 @@ fun LoginScreen(vm: AppViewModel) {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 28.dp, vertical = 24.dp)
+                .padding(horizontal = if (isTelevision) 28.dp else 12.dp, vertical = if (isTelevision) 24.dp else 6.dp)
         ) {
             val wideLayout = maxWidth >= 760.dp
 
@@ -138,8 +138,9 @@ fun LoginScreen(vm: AppViewModel) {
                 ) {
                     Column(modifier = Modifier.widthIn(max = 520.dp)) {
                         BrandPanel(compact = true)
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(6.dp))
                         LoginCard(
+                            compactMobile = true,
                             server = server,
                             username = username,
                             password = password,
@@ -363,7 +364,8 @@ private fun LoginCard(
     onPasswordChange: (String) -> Unit,
     onPasswordVisibilityChange: () -> Unit,
     onLogin: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    compactMobile: Boolean = false
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -376,18 +378,18 @@ private fun LoginCard(
         )
     ) {
         Column(
-            modifier = Modifier.padding(30.dp)
+            modifier = Modifier.padding(if (compactMobile) 14.dp else 30.dp)
         ) {
             Text(
                 text = if (editingAccount) "Modifica account" else "Accedi al tuo account",
                 color = Color.White,
-                style = MaterialTheme.typography.headlineSmall,
+                style = if (compactMobile) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(if (compactMobile) 2.dp else 6.dp))
 
-            Text(
+            if (!compactMobile) Text(
                 text = if (editingAccount) {
                     "Modifica i dati che desideri e conferma il nuovo accesso."
                 } else {
@@ -397,7 +399,7 @@ private fun LoginCard(
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            Spacer(Modifier.height(26.dp))
+            Spacer(Modifier.height(if (compactMobile) 8.dp else 26.dp))
 
             LoginTextField(
                 value = server,
@@ -407,7 +409,7 @@ private fun LoginCard(
                 keyboardType = KeyboardType.Uri
             )
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(if (compactMobile) 6.dp else 14.dp))
 
             LoginTextField(
                 value = username,
@@ -416,7 +418,7 @@ private fun LoginCard(
                 placeholder = "Il tuo username"
             )
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(if (compactMobile) 6.dp else 14.dp))
 
             LoginTextField(
                 value = password,
@@ -438,7 +440,7 @@ private fun LoginCard(
             )
 
             error?.let {
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(if (compactMobile) 6.dp else 14.dp))
 
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer
@@ -454,7 +456,7 @@ private fun LoginCard(
                 }
             }
 
-            Spacer(Modifier.height(22.dp))
+            Spacer(Modifier.height(if (compactMobile) 8.dp else 22.dp))
 
             LoginTvButton(
                 enabled = canLogin,
@@ -463,13 +465,14 @@ private fun LoginCard(
                 onClick = onLogin
             )
 
+            if (!compactMobile) {
             Spacer(Modifier.height(18.dp))
 
             HorizontalDivider(
                 color = Color(0x221D8BFF)
             )
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(if (compactMobile) 6.dp else 14.dp))
 
             Text(
                 text = "Usa esclusivamente servizi e contenuti per i quali disponi delle necessarie autorizzazioni.",
@@ -477,6 +480,7 @@ private fun LoginCard(
                 fontSize = 11.sp,
                 lineHeight = 16.sp
             )
+            }
         }
     }
 }
