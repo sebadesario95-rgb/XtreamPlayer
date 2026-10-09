@@ -1,5 +1,8 @@
 package com.example.xtreamplayer.ui
 
+import android.app.UiModeManager
+import android.content.Context
+import android.content.res.Configuration
 import android.util.Base64
 import android.view.ViewGroup
 import androidx.compose.animation.core.animateFloatAsState
@@ -509,6 +512,11 @@ private fun GlobalLiveSearchField(
 
     val textFocusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val uiModeManager = remember(context) {
+        context.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
+    }
+    val touchMode = uiModeManager.currentModeType != Configuration.UI_MODE_TYPE_TELEVISION
 
     val scale by animateFloatAsState(
         targetValue = if (containerFocused || editing) 1.03f else 1f,
@@ -580,7 +588,7 @@ private fun GlobalLiveSearchField(
                             editing = false
                         }
                     },
-                enabled = editing,
+                enabled = touchMode || editing,
                 singleLine = true,
                 textStyle = TextStyle(
                     color = Color.White,
@@ -930,6 +938,11 @@ private fun LiveSearchField(
 
     val textFocusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val uiModeManager = remember(context) {
+        context.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
+    }
+    val touchMode = uiModeManager.currentModeType != Configuration.UI_MODE_TYPE_TELEVISION
 
     val scale by animateFloatAsState(
         targetValue = if (containerFocused || editing) 1.025f else 1f,
@@ -1001,7 +1014,7 @@ private fun LiveSearchField(
                             editing = false
                         }
                     },
-                enabled = editing,
+                enabled = touchMode || editing,
                 singleLine = true,
                 textStyle = TextStyle(
                     color = Color.White,
